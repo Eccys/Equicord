@@ -315,7 +315,7 @@ export default definePlugin({
                 {
                     // Overwrite non local proto changes with our local settings
                     match: /let{settings:/,
-                    replace: "arguments[0].local||$self.handleProtoChange(arguments[0].settings.proto);$&"
+                    replace: "arguments[0].local||arguments[0].settings.type!==1||$self.handleProtoChange(arguments[0].settings.proto);$&"
                 }
             ]
         },
@@ -339,8 +339,8 @@ export default definePlugin({
             find: '["strong","em","u","text","inlineCode","s","spoiler"]',
             predicate: () => settings.store.transformEmojis || settings.store.transformStickers,
             replacement: {
-                match: /\(\{ast:(\i)(?=,inline:\i)/,
-                replace: "({ast:$self.transformAst($1)"
+                match: /\(\{ast:(\i)(?=,inline:\i.+?,messageContent:(\i))/,
+                replace: "({ast:$self.transformAst($1,$2)"
             }
         },
         {
@@ -436,17 +436,24 @@ export default definePlugin({
             const premiumType = OverridePremiumTypeStore.getState().premiumTypeActual ?? 0;
 
             if (premiumType !== 2) {
-                proto.appearance ??= AppearanceSettingsActionCreators.create();
-
                 const protoStoreAppearenceSettings = UserSettingsProtoStore.settings.appearance;
 
-                const appearanceSettingsOverwrite = AppearanceSettingsActionCreators.create({
-                    ...proto.appearance,
-                    theme: protoStoreAppearenceSettings?.theme,
-                    clientThemeSettings: protoStoreAppearenceSettings?.clientThemeSettings
-                });
+                if (
+                    protoStoreAppearenceSettings?.theme != null && (
+                        protoStoreAppearenceSettings.clientThemeSettings?.backgroundGradientPresetId != null
+                        || protoStoreAppearenceSettings.clientThemeSettings?.customUserThemeSettings != null
+                    )
+                ) {
+                    proto.appearance ??= AppearanceSettingsActionCreators.create();
 
-                proto.appearance = appearanceSettingsOverwrite;
+                    const appearanceSettingsOverwrite = AppearanceSettingsActionCreators.create({
+                        ...proto.appearance,
+                        theme: protoStoreAppearenceSettings.theme,
+                        clientThemeSettings: protoStoreAppearenceSettings.clientThemeSettings
+                    });
+
+                    proto.appearance = appearanceSettingsOverwrite;
+                }
             }
         } catch (err) {
             new Logger("FakeNitro").error(err);
@@ -519,7 +526,7 @@ export default definePlugin({
         if (!Array.isArray(child.props.children)) child.props.children = [child.props.children];
     },
 
-    transformAst(ast: any[]) {
+    transformAst(ast: any[], messageContent?: string) {
         try {
             if (!settings.store.transformCompoundSentence && ast.length > 1) {
                 return ast;
@@ -530,6 +537,12 @@ export default definePlugin({
                     const { type, target } = node;
 
                     if (type !== "link") return true;
+                    if (
+                        messageContent && (
+                            (!settings.store.transformCompoundSentence && !messageContent.startsWith("http") && !hyperLinkOnlyRegex.test(messageContent))
+                            || messageContent.includes(`<${target}>`)
+                        )
+                    ) return true;
                     if (fakeNitroStickerRegex.test(target)) return false;
 
                     const gifStickerLinkMatch = target.match(fakeNitroGifStickerRegex);
@@ -584,6 +597,7 @@ export default definePlugin({
         itemsToMaybePush.push(...message.attachments.filter(attachment => attachment.content_type === "image/gif").map(attachment => attachment.url));
 
         for (const item of itemsToMaybePush) {
+            if (/<https?:\/\/[^>]+>/.test(item)) continue;
             if (!settings.store.transformCompoundSentence && !item.startsWith("http") && !hyperLinkRegex.test(item)) continue;
 
             const imgMatch = item.match(fakeNitroStickerRegex);

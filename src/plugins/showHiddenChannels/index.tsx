@@ -23,7 +23,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs, EquicordDevs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { classes } from "@utils/misc";
-import definePlugin, { OptionType } from "@utils/types";
+import definePlugin, { OptionType, StartAt } from "@utils/types";
 import type { Channel, Role } from "@vencord/discord-types";
 import { ChannelStore, PermissionsBits, PermissionStore, Tooltip } from "@webpack/common";
 
@@ -398,7 +398,7 @@ export default definePlugin({
             ]
         },
         {
-            find: '"HasBeenInStageChannel"',
+            find: "audience-header-",
             replacement: [
                 {
                     // Render our HiddenChannelLockScreen component instead of the main stage channel component
@@ -419,12 +419,7 @@ export default definePlugin({
                     // Disable strange styles applied to the header for the HiddenChannelLockScreen of stage channels
                     match: /"124px".+?style:(?<=let \i,{channel:(\i).+?)/,
                     replace: (m, channel) => `${m}$self.isHiddenChannel(${channel})?void 0:`
-                }
-            ]
-        },
-        {
-            find: "#{intl::STAGE_FULL_MODERATOR_TITLE}",
-            replacement: [
+                },
                 {
                     // Remove the divider and amount of users in stage channel components for the HiddenChannelLockScreen
                     match: /\(0,\i\.jsx\)\(\i\.\i\.Divider.+?}\)]}\)(?=.+?:(\i)\.guild_id)/,
@@ -509,12 +504,25 @@ export default definePlugin({
         },
         {
             find: "2026-02-private-channel-hiding",
-            replacement: {
-                match: /(?<=enableObfuscation|enableIntegrityCheck):!0/g,
-                replace: ":false"
-            }
+            replacement: [
+                {
+                    match: /(?<=enableObfuscation|enableIntegrityCheck):!0/g,
+                    replace: ":false"
+                },
+                {
+                    match: /\.(?:enableObfuscation|enableIntegrityCheck)\b/g,
+                    replace: "&&false"
+                }
+            ]
         }
     ],
+
+    startAt: StartAt.Init,
+    start() {
+        try {
+            window.localStorage.removeItem("private_channel_obfuscation");
+        } catch { }
+    },
 
     set ChannelBeginHeader(value: any) {
         setChannelBeginHeader(value);

@@ -8,13 +8,13 @@ import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/Co
 import { PaintbrushIcon } from "@components/Icons";
 import { EquicordDevs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { extractAndLoadChunksLazy } from "@webpack";
+import { DefaultExtractAndLoadChunksRegex, extractAndLoadChunksLazy } from "@webpack";
 import { ChannelStore, closeModal, DraftType, FluxDispatcher, Menu, openModal, PendingReplyStore, SelectedChannelStore, UploadHandler } from "@webpack/common";
 
 import RemixModal from "./RemixModal";
 import css from "./styles.css?managed";
 
-const requireCreateStickerModal = extractAndLoadChunksLazy([".CREATE_STICKER_MODAL,", "isDisplayingIndividualStickers"]);
+const requireCreateStickerModal = extractAndLoadChunksLazy([".CREATE_STICKER_MODAL,", "isDisplayingIndividualStickers"], new RegExp(`\\.CREATE_STICKER_MODAL,.+?${DefaultExtractAndLoadChunksRegex.source}`));
 const requireSettingsMenu = extractAndLoadChunksLazy(['type:"USER_SETTINGS_MODAL_OPEN"']);
 
 const validMediaTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];

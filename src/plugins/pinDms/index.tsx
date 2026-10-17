@@ -238,21 +238,36 @@ export default definePlugin({
 
         if (!this.instance || !this.isChannelIndex(categoryIndex, channelIndex)) return false;
 
-        const category = getCategoryByIndex(categoryIndex - 1);
-        if (!category) return false;
+        const { channel, category } = this.getChannel(categoryIndex, channelIndex, this.instance.props.channels);
+        if (!channel || !category) return true;
 
-        return category.collapsed && this.instance.props.selectedChannelId !== getCategoryChannels(category)[channelIndex];
+        return Boolean(category.collapsed && this.instance.props.selectedChannelId !== channel.id);
     },
 
     getScrollOffset(channelId: string, rowHeight: number, padding: number, preRenderedChildren: number, originalOffset: number) {
         const channels = this.getAllUncollapsedChannels();
 
-        if (!isPinned(channelId))
+        if (!isPinned(channelId)) {
+            const row = this.instance?.props?.privateChannelIds?.indexOf(channelId) ?? -1;
+            if (row !== -1 && this.instance?._list?.getScrollPosition) {
+                return this.instance._list.getScrollPosition(this.categoryLen() + 1, row)[0];
+            }
+
             return (
-                (rowHeight + padding) * 2 // header
+                24 * (this.categoryLen() + 1) // headers
                 + rowHeight * channels.length // pins
                 + originalOffset // original pin offset minus pins
             );
+        }
+
+        for (let i = 0; i < this.categoryLen(); i++) {
+            const category = getCategoryByIndex(i);
+            if (!category) continue;
+            const row = getCategoryChannels(category).indexOf(channelId);
+            if (row !== -1 && this.instance?._list?.getScrollPosition) {
+                return this.instance._list.getScrollPosition(i + 1, row)[0];
+            }
+        }
 
         return rowHeight * (channels.indexOf(channelId) + preRenderedChildren) + padding;
     },
