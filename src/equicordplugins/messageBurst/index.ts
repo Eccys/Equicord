@@ -19,7 +19,7 @@ function shouldEdit(channel: Channel, message: Message, timePeriod: number, shou
         }
     }
 
-    if (message.author.id !== UserStore.getCurrentUser().id) {
+    if (message.author?.id !== UserStore.getCurrentUser()?.id) {
         should = false;
     }
 

@@ -20,7 +20,7 @@ const MuteIconSelf = findComponentByCodeLazy("d:\"m2.7 22.7 20-20a1", "1.4ZM10.8
 const MuteIconOther = findComponentByCodeLazy("M21.76.83a5.02", "M12 2c.33 0") as Icon;
 
 function VoiceUserButton({ user, tooltip, icon, onClick }: { user: User; tooltip: string; icon: JSX.Element; onClick: () => void; }) {
-    const isCurrent = (user.id === UserStore.getCurrentUser().id);
+    const isCurrent = (user.id === UserStore.getCurrentUser()?.id);
     if (isCurrent && settings.store.showButtonsSelf === "hide") return null;
     const disabled = isCurrent && settings.store.showButtonsSelf === "disable";
     return (
@@ -84,7 +84,7 @@ function getServerMuteDeafenState(userId: string) {
 }
 
 export function UserChatButton({ user }: { user: User; }) {
-    const isCurrent = (user.id === UserStore.getCurrentUser().id);
+    const isCurrent = (user.id === UserStore.getCurrentUser()?.id);
     return (
         <VoiceUserButton
             user={user}
@@ -102,7 +102,7 @@ export function UserChatButton({ user }: { user: User; }) {
 }
 
 export function UserMuteButton({ user }: { user: User; }) {
-    const isCurrent = (user.id === UserStore.getCurrentUser().id);
+    const isCurrent = (user.id === UserStore.getCurrentUser()?.id);
     const { canMute: canServerMute } = canServerMuteDeafen(user.id);
     const { isServerMuted } = getServerMuteDeafenState(user.id);
 
@@ -145,7 +145,7 @@ export function UserMuteButton({ user }: { user: User; }) {
 }
 
 export function UserDeafenButton({ user }: { user: User; }) {
-    const isCurrent = (user.id === UserStore.getCurrentUser().id);
+    const isCurrent = (user.id === UserStore.getCurrentUser()?.id);
     const { canDeafen: canServerDeafen } = canServerMuteDeafen(user.id);
     const { isServerDeafened } = getServerMuteDeafenState(user.id);
 

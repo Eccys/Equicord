@@ -87,6 +87,7 @@ const DemoMessage = (props: { msgId, compact, message, date: Date | undefined, i
     message.id = props.msgId;
     message.timestamp = moment(props.date ?? new Date());
     const user = UserStore.getCurrentUser();
+    if (!user) return null;
     const populatedMessage = message && populateMessagePrototype(message);
     return populatedMessage ? (
         <div className="vc-cmt-demo-message">
@@ -101,8 +102,7 @@ const DemoMessage = (props: { msgId, compact, message, date: Date | undefined, i
         </div>
     ) : <div className="vc-cmt-demo-message">
         <Paragraph>
-            {/* @ts-ignore */}
-            <b>Preview:</b> {customTimestamps.renderTimestamp(date, "cozy")}
+            <b>Preview:</b> {customTimestamps.renderTimestamp(props.date ?? new Date(), "cozy")}
         </Paragraph>
     </div>;
 };

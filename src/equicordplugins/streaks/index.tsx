@@ -19,6 +19,7 @@ import { useAuthorizationStore } from "./stores/AuthorizationStore";
 import { useStreaksStore } from "./stores/StreaksStore";
 
 const cl = classNameFactory("vc-streaks-");
+const pendingRefreshTimers = new Set<ReturnType<typeof setTimeout>>();
 
 const STREAK_THRESHOLDS = {
     ELITE: 100,
@@ -82,9 +83,9 @@ export default definePlugin({
             if (message.author?.bot) return;
 
             const channel = ChannelStore.getChannel(channelId);
-            if (!channel.isDM()) return;
+            if (!channel?.isDM()) return;
 
-            const recipientId = channel.recipients[0];
+            const recipientId = channel.recipients?.[0];
             if (!recipientId) return;
 
             const me = UserStore.getCurrentUser()?.id;
@@ -101,7 +102,8 @@ export default definePlugin({
                 }
             } else if (message.author.id === recipientId) {
                 if (!theirFlag) {
-                    setTimeout(async () => {
+                    const timer = setTimeout(async () => {
+                        pendingRefreshTimers.delete(timer);
                         const before = useStreaksStore.getState().streaks[recipientId]?.count;
                         await useStreaksStore.getState().refresh(recipientId);
                         const after = useStreaksStore.getState().streaks[recipientId]?.count;
@@ -110,9 +112,15 @@ export default definePlugin({
                             useStreaksStore.getState().update(recipientId);
                         }
                     }, 1000);
+                    pendingRefreshTimers.add(timer);
                 }
             }
         },
+    },
+
+    stop() {
+        for (const timer of pendingRefreshTimers) clearTimeout(timer);
+        pendingRefreshTimers.clear();
     },
 
     renderMessageDecoration({ message }) {

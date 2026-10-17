@@ -106,13 +106,15 @@ export default definePlugin({
     messagePopoverButton: {
         icon: Husk,
         render(msg) {
+            const channel = ChannelStore.getChannel(msg.channel_id);
+            if (!channel) return null;
             return {
                 label: "Husk",
                 icon: Husk,
                 message: msg,
-                channel: ChannelStore.getChannel(msg.channel_id),
+                channel,
                 onClick: () => {
-                    const guildId = ChannelStore.getChannel(msg.channel_id).guild_id !== null ? ChannelStore.getChannel(msg.channel_id).guild_id : "";
+                    const guildId = ChannelStore.getChannel(msg.channel_id)?.guild_id ?? "";
                     RestAPI.put({
                         url: `/channels/${msg.channel_id}/messages/${msg.id}/reactions/${settings.store.emojiName}:${getEmojiIdThatShouldBeUsed(guildId)}/@me`
                     }

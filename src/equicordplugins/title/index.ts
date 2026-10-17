@@ -47,5 +47,9 @@ export default definePlugin({
         setTitle(settings.store.title);
     },
 
+    stop() {
+        setTitle("");
+    },
+
     rootTitle,
 });

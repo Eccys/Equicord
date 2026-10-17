@@ -10,7 +10,7 @@ import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { Menu, UploadHandler } from "@webpack/common";
 
-let recoder: MediaRecorder;
+let recoder: MediaRecorder | null = null;
 
 export default definePlugin({
     name: "ScreenRecorder",
@@ -19,6 +19,16 @@ export default definePlugin({
     authors: [Devs.AutumnVN],
     contextMenus: {
         "channel-attach": startRecording
+    },
+    stop() {
+        if (recoder) {
+            if (recoder.state !== "inactive") {
+                recoder.stop();
+            }
+            recoder.stream?.getTracks().forEach(t => t.stop());
+            recoder = null;
+        }
+        removeContextMenuPatch("channel-attach", stopRecording);
     }
 });
 
@@ -54,11 +64,18 @@ function stopRecording(children, props) {
                 </div>
             }
             action={() => {
-                recoder.addEventListener("dataavailable", e => {
-                    const file = new File([e.data], "recording.webm", { type: "video/webm" });
-                    UploadHandler.promptToUpload([file], props.channel, 0);
-                });
-                recoder.stop();
+                const activeRecorder = recoder;
+                if (activeRecorder) {
+                    activeRecorder.addEventListener("dataavailable", e => {
+                        const file = new File([e.data], "recording.webm", { type: "video/webm" });
+                        UploadHandler.promptToUpload([file], props.channel, 0);
+                    }, { once: true });
+                    if (activeRecorder.state !== "inactive") {
+                        activeRecorder.stop();
+                    }
+                    activeRecorder.stream?.getTracks().forEach(t => t.stop());
+                    recoder = null;
+                }
                 removeContextMenuPatch("channel-attach", stopRecording);
                 addContextMenuPatch("channel-attach", startRecording);
             }}

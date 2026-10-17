@@ -101,8 +101,11 @@ function VerifyModal({
             frame = requestAnimationFrame(update);
         };
 
-        if (state === VerifyState.Verifying) requestAnimationFrame(update);
-        return () => cancelAnimationFrame(frame);
+        if (state === VerifyState.Verifying) frame = requestAnimationFrame(update);
+        return () => {
+            cancelAnimationFrame(frame);
+            clearTimeout(timeout);
+        };
     }, [state]);
 
     return (

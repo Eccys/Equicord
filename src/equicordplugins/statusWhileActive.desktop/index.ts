@@ -61,7 +61,8 @@ export default definePlugin({
     settings,
     flux: {
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
-            const userId = UserStore.getCurrentUser().id;
+            const userId = UserStore.getCurrentUser()?.id;
+            if (!userId) return;
             const myState = voiceStates.find(state => state.userId === userId);
             if (!myState) return;
 
@@ -71,11 +72,18 @@ export default definePlugin({
             setStatus(inVoiceChannel, status);
         },
         VOICE_CHANNEL_STATUS_UPDATE() {
-            const userId = UserStore.getCurrentUser().id;
+            const userId = UserStore.getCurrentUser()?.id;
+            if (!userId) return;
             const status = StatusSettings.getSetting();
             const inVoiceChannel = !!VoiceStateStore.getVoiceStateForUser(userId)?.channelId;
 
             setStatus(inVoiceChannel, status);
         }
+    },
+    stop() {
+        if (savedStatus && savedStatus !== settings.store.statusToSet) {
+            StatusSettings?.updateSetting(savedStatus);
+        }
+        savedStatus = null;
     },
 });

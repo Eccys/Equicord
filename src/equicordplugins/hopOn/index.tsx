@@ -41,7 +41,12 @@ export default definePlugin({
             if (message.state === "SENDING") return;
             if (RelationshipStore.isBlocked(message.author?.id)) return;
             if (channelId !== SelectedChannelStore.getChannelId()) return;
-            if (!message.content?.match(new RegExp(settings.store.regex, "i"))) return;
+            if (!settings.store.regex) return;
+            try {
+                if (!message.content?.match(new RegExp(settings.store.regex, "i"))) return;
+            } catch {
+                return;
+            }
 
             VencordNative.native.openExternal(settings.store.url);
         }

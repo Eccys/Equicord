@@ -44,19 +44,21 @@ export default definePlugin({
         MESSAGE_CREATE({ message, channelId, guildId }: MessageCreatePayload) {
             if (message.type !== MessageType.DEFAULT || getCurrentChannel()?.id === channelId) return;
 
+            const authorId = message.author?.id;
+            if (!authorId) return;
             const userIds = settings.store.users.split(",").map(id => id.trim());
-            if (!userIds.includes(message.author.id)) return;
+            if (!userIds.includes(authorId)) return;
 
-            const username = RelationshipStore.getNickname(message.author.id) ?? message.author.globalName ?? message.author.username;
+            const username = RelationshipStore.getNickname(authorId) ?? message.author.globalName ?? message.author.username;
             const guild = GuildStore.getGuild(guildId);
             const channel = ChannelStore.getChannel(channelId);
-            const locationName = guild ? `${guild.name}#${channel.name}` : channel?.name ?? "their dms";
+            const locationName = guild ? `${guild.name}#${channel?.name ?? "unknown"}` : channel?.name ?? "their dms";
 
             Notifications.showNotification({
                 title: `${username} sent a message`,
                 body: `Click to jump to ${locationName}`,
                 onClick() {
-                    NavigationRouter.transitionTo(`/channels/${guild?.id ?? "@me"}/${channel.id}/${message.id}`);
+                    NavigationRouter.transitionTo(`/channels/${guild?.id ?? "@me"}/${channel?.id ?? channelId}/${message.id}`);
                 },
             });
         },

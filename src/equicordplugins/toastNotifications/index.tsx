@@ -124,10 +124,11 @@ export default definePlugin({
             if (!channel) return;
 
             const currentUser = UserStore.getCurrentUser();
+            if (!currentUser) return;
 
             // Check global conditions for all message types.
             if (
-                (message.author.id === currentUser.id) // If message is from the user.
+                (message.author?.id === currentUser.id) // If message is from the user.
                 || (channel.id === SelectedChannelStore.getChannelId()) // If the user is currently in the channel.
                 || (ignoredUsers.includes(message.author.id)) // If the user is ignored.
                 || (settings.store.respectDoNotDisturb && PresenceStore.getStatus(currentUser.id) === "dnd") // If notifications are disabled while in DND.
@@ -217,7 +218,8 @@ function shouldNotifyForGuildMessage(message: Message, channel: Channel): boolea
     if (level === UserNotificationSetting.ALL_MESSAGES) return true;
 
     // Otherwise we only notify if the user was mentioned.
-    return message.content.includes(`<@${UserStore.getCurrentUser().id}>`);
+    const currentUserId = UserStore.getCurrentUser()?.id;
+    return Boolean(currentUserId && message.content.includes(`<@${currentUserId}>`));
 }
 
 function showExampleNotification(): Promise<void> {

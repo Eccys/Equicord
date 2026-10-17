@@ -98,8 +98,8 @@ export default definePlugin({
                 const channel = ChannelStore.getChannel(message.channel_id);
                 const currentUser = UserStore.getCurrentUser();
 
-                if (!channel || !currentUser) return;
-                if (message.author?.id === currentUser.id) return;
+                if (!channel || !currentUser || !message.author?.id) return;
+                if (message.author.id === currentUser.id) return;
 
                 const isDM = [1, 3].includes(channel.type);
 

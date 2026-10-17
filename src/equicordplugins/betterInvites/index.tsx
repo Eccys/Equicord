@@ -90,7 +90,7 @@ export default definePlugin({
     Header(inviter: User | undefined, guildName: string) {
         if (!inviter) return null;
 
-        const userId = UserStore.getCurrentUser().id;
+        const userId = UserStore.getCurrentUser()?.id;
         const isSelf = userId === inviter.id;
 
         return (

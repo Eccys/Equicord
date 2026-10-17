@@ -158,7 +158,7 @@ export default definePlugin({
         try {
             const channelId = SelectedChannelStore.getChannelId();
             const channel = ChannelStore.getChannel(channelId);
-            const isDM = channel.isDM() || channel.isMultiUserDM();
+            const isDM = channel ? (channel.isDM() || channel.isMultiUserDM()) : false;
             const colorString = this.colorIfServer(context);
             if (colorString === colorProps.colorString) return colorProps;
             if (!settings.store.colorInServers && !isDM) return colorProps;

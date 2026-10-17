@@ -49,7 +49,8 @@ async function jumpToLastActive(channel: Channel, targetUserId?: string) {
 
     try {
         const guildId = channel.guild_id ?? "@me";
-        const userId = targetUserId ?? UserStore.getCurrentUser().id;
+        const userId = targetUserId ?? UserStore.getCurrentUser()?.id;
+        if (!userId) return;
 
         const messageId = await findLastMessageFromUser(guildId, channel.id, userId);
         if (messageId) {

@@ -44,6 +44,7 @@ export const settings = definePluginSettings({
         default: 10,
         stickToMarkers: true,
         onChange: () => {
+            if (!isSchedulerActive) return;
             stopScheduler();
             startScheduler();
         }
@@ -59,6 +60,8 @@ export const settings = definePluginSettings({
         default: true
     }
 });
+
+let isSchedulerActive = false;
 
 function handleReactionEvent(event: FluxReactionEvent): void {
     const { messageId, channelId, emoji } = event;
@@ -160,12 +163,15 @@ export default definePlugin({
     },
 
     async start() {
+        isSchedulerActive = true;
         await loadScheduledMessages();
+        if (!isSchedulerActive) return;
         startScheduler();
         recreatePhantomMessages();
     },
 
     stop() {
+        isSchedulerActive = false;
         stopScheduler();
         cleanupAllPhantomMessages();
     }

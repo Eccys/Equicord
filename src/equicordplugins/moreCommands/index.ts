@@ -422,7 +422,7 @@ export default definePlugin({
             }],
             execute: opts => {
                 const victim = findOption(opts, "victim") as string;
-                return { content: `<@${UserStore.getCurrentUser().id}> slaps ${victim} around a bit with a large trout` };
+                return { content: `<@${UserStore.getCurrentUser()?.id ?? ""}> slaps ${victim} around a bit with a large trout` };
             }
         },
         {

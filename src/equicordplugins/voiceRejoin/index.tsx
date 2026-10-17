@@ -15,6 +15,8 @@ import { ChannelStore, FluxDispatcher, UserStore, VoiceStateStore } from "@webpa
 const DATASTORE_KEY = "VCLastVoiceChannel";
 const DATASTORE_SESSION_KEY = "VCLastVoiceChannelSession";
 const logger = new Logger("VoiceRejoin");
+let rejoinTimeoutId: ReturnType<typeof setTimeout> | null = null;
+let isRejoinCancelled = false;
 
 const settings = definePluginSettings({
     rejoinDelay: {
@@ -81,22 +83,28 @@ export default definePlugin({
         },
 
         async CONNECTION_OPEN() {
+            isRejoinCancelled = false;
             const wasInVC = await DataStore.get(DATASTORE_SESSION_KEY);
+            if (isRejoinCancelled) return;
             if (wasInVC === false) {
                 await DataStore.del(DATASTORE_KEY);
                 return;
             }
 
-            setTimeout(async () => {
+            if (rejoinTimeoutId) clearTimeout(rejoinTimeoutId);
+            rejoinTimeoutId = setTimeout(async () => {
+                rejoinTimeoutId = null;
                 try {
+                    if (isRejoinCancelled) return;
                     const saved = await DataStore.get(DATASTORE_KEY);
-                    if (!saved?.channelId) return;
+                    if (isRejoinCancelled || !saved?.channelId) return;
 
                     let channel = ChannelStore.getChannel(saved.channelId);
-                    for (let i = 0; i < 20 && !channel; i++) {
+                    for (let i = 0; i < 20 && !channel && !isRejoinCancelled; i++) {
                         await new Promise(resolve => setTimeout(resolve, 250));
                         channel = ChannelStore.getChannel(saved.channelId);
                     }
+                    if (isRejoinCancelled) return;
 
                     if (!channel) {
                         await DataStore.set(DATASTORE_SESSION_KEY, false);
@@ -129,8 +137,8 @@ export default definePlugin({
                             (preventionMode === "servers" && !isDM);
 
                         if (shouldPrevent) {
-                            const connectedUsers = VoiceStateStore.getVoiceStatesForChannel(saved.channelId) as Record<string, VoiceState>;
-                            const othersInCall = Object.values(connectedUsers).filter(
+                            const connectedUsers = VoiceStateStore.getVoiceStatesForChannel(saved.channelId) as Record<string, VoiceState> | undefined;
+                            const othersInCall = Object.values(connectedUsers ?? {}).filter(
                                 vs => vs.userId !== myUserId
                             );
 
@@ -158,5 +166,13 @@ export default definePlugin({
                 }
             }, settings.store.rejoinDelay * 1000);
         },
+    },
+
+    stop() {
+        isRejoinCancelled = true;
+        if (rejoinTimeoutId) {
+            clearTimeout(rejoinTimeoutId);
+            rejoinTimeoutId = null;
+        }
     },
 });

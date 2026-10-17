@@ -18,6 +18,7 @@ import { settings } from "./settings";
 import { cl, GlobalBadges, INVITE_LINK, loadBadges } from "./utils";
 
 let intervalId: any;
+let isRunning = false;
 
 export default definePlugin({
     name: "GlobalBadges",
@@ -37,12 +38,16 @@ export default definePlugin({
         </>
     ),
     async start() {
+        isRunning = true;
         await loadBadges();
+        if (!isRunning) return;
         clearInterval(intervalId);
         intervalId = setInterval(loadBadges, 1000 * 60 * 30);
     },
     async stop() {
+        isRunning = false;
         clearInterval(intervalId);
+        intervalId = undefined;
     },
     toolboxActions: {
         async "Refetch Global Badges"() {

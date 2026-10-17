@@ -92,12 +92,12 @@ export default definePlugin({
 
     flux: {
         USER_SETTINGS_PROTO_UPDATE(settingsUpdate: SettingsProto) {
-            const protoStatus = settingsUpdate.settings.proto.status;
+            const protoStatus = settingsUpdate?.settings?.proto?.status;
 
-            if (protoStatus !== undefined) {
+            if (protoStatus !== undefined && protoStatus.status?.value !== undefined) {
                 const steamStatus: SteamStatus = settings.store[`${protoStatus.status.value}Status`];
 
-                if (settings.store.goInvisibleIfActivityIsHidden && !protoStatus.showCurrentGame.value) {
+                if (settings.store.goInvisibleIfActivityIsHidden && protoStatus.showCurrentGame && !protoStatus.showCurrentGame.value) {
                     open(`steam://friends/status/${SteamStatus.Invisible}`);
 
                     return;

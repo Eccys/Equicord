@@ -252,12 +252,17 @@ export default definePlugin({
         }
     ],
 
+    isStopped: false,
+    batchTimer: null as ReturnType<typeof setTimeout> | null,
+
     async start() {
+        this.isStopped = false;
         const channels = ChannelStore.getSortedPrivateChannels()
             .slice(0, 25)
             .filter(c => !MessageStore.getLastMessage(c.id));
 
         for (let i = 0; i < channels.length; i += 5) {
+            if (this.isStopped) break;
             const batch = channels.slice(i, i + 5);
 
             await Promise.allSettled(
@@ -269,9 +274,23 @@ export default definePlugin({
                 )
             );
 
+            if (this.isStopped) break;
             if (i + 5 < channels.length) {
-                await new Promise(r => setTimeout(r, 3000));
+                await new Promise<void>(r => {
+                    this.batchTimer = setTimeout(() => {
+                        this.batchTimer = null;
+                        r();
+                    }, 3000);
+                });
             }
+        }
+    },
+
+    stop() {
+        this.isStopped = true;
+        if (this.batchTimer) {
+            clearTimeout(this.batchTimer);
+            this.batchTimer = null;
         }
     },
 

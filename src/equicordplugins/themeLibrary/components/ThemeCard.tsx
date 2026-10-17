@@ -30,7 +30,7 @@ interface ThemeCardProps {
     removeButtons?: boolean;
 }
 
-const UserRecord: Constructor<Partial<User>> = proxyLazy(() => UserStore.getCurrentUser().constructor) as any;
+const UserRecord: Constructor<Partial<User>> = proxyLazy(() => UserStore.getCurrentUser()?.constructor ?? Object) as any;
 
 function makeDummyUser(user: { username: string; id?: string; avatar?: string; }) {
     const newUser = new UserRecord({
