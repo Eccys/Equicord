@@ -2,6 +2,10 @@
     grid-area: betterFoldersSidebar
 }
 
+div:has(> .vc-betterFolders-sidebar) {
+    width: auto !important;
+}
+
 .vc-betterFolders-nested-parent-list {
     height: auto !important;
     padding-bottom: 6px !important;
