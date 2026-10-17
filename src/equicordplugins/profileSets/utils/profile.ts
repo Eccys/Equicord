@@ -159,6 +159,7 @@ async function processImage(imageData: ImageInput, userId: string, type: "avatar
 
 export async function getCurrentProfile(guildId?: string, options: CurrentProfileOptions = {}): Promise<Omit<ProfilePreset, "name" | "timestamp">> {
     const currentUser = UserStore.getCurrentUser();
+    if (!currentUser) throw new Error("Current user is not available");
     const baseProfile = UserProfileStore.getUserProfile(currentUser.id);
     const isGuildProfile = options.isGuildProfile ?? Boolean(guildId);
     const effectiveGuildId = isGuildProfile ? guildId : undefined;

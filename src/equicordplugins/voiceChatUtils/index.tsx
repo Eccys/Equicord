@@ -29,8 +29,8 @@ async function runSequential<T>(promises: Promise<T>[]): Promise<T[]> {
 }
 
 function sendPatch(channel: Channel, body: Record<string, any>, bypass = false) {
-    const usersVoice = VoiceStateStore.getVoiceStatesForChannel(channel.id); // Get voice states by channel id
-    const myId = UserStore.getCurrentUser().id; // Get my user id
+    const usersVoice = VoiceStateStore.getVoiceStatesForChannel(channel.id) ?? {}; // Get voice states by channel id
+    const myId = UserStore.getCurrentUser()?.id; // Get my user id
 
     const promises: Promise<any>[] = [];
     Object.keys(usersVoice).forEach((key, index) => {
@@ -51,7 +51,7 @@ function sendPatch(channel: Channel, body: Record<string, any>, bypass = false) 
 
 function mentionVoiceUsers(channel: Channel) {
     const currentUserId = UserStore.getCurrentUser()?.id;
-    const mentions = Object.values(VoiceStateStore.getVoiceStatesForChannel(channel.id))
+    const mentions = Object.values(VoiceStateStore.getVoiceStatesForChannel(channel.id) ?? {})
         .map(state => state.userId)
         .filter((userId, index, arr) => userId && userId !== currentUserId && arr.indexOf(userId) === index)
         .map(userId => `<@${userId}>`);
@@ -67,11 +67,11 @@ interface VoiceChannelContextProps {
 const VoiceChannelContext: NavContextMenuPatchCallback = (children, { channel }: VoiceChannelContextProps) => {
     // only for voice and stage channels
     if (!channel || (channel.type !== 2 && channel.type !== 13)) return;
-    const userCount = Object.keys(VoiceStateStore.getVoiceStatesForChannel(channel.id)).length;
+    const userCount = Object.keys(VoiceStateStore.getVoiceStatesForChannel(channel.id) ?? {}).length;
     if (userCount === 0) return;
 
-    const guildChannels: { VOCAL: { channel: Channel, comparator: number; }[]; } = GuildChannelStore.getChannels(channel.guild_id);
-    const voiceChannels = guildChannels.VOCAL.map(({ channel }) => channel).filter(({ id }) => id !== channel.id);
+    const guildChannels: { VOCAL?: { channel: Channel, comparator: number; }[]; } | undefined = GuildChannelStore.getChannels(channel.guild_id);
+    const voiceChannels = (guildChannels?.VOCAL ?? []).map(({ channel }) => channel).filter(({ id }) => id !== channel.id);
 
     children.splice(
         -1,

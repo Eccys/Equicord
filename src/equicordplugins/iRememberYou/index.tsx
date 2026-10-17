@@ -47,8 +47,10 @@ export default definePlugin({
     stop() {
         removeFromArray(SettingsPlugin.customEntries, e => e.key === "equicord_i_remember_you");
 
-        const dataManager = this.dataManager as Data;
-        removeMessagePreSendListener(dataManager._onMessagePreSend_preSend);
-        clearInterval(dataManager._storageAutoSaveProtocol_interval);
+        const dataManager = this.dataManager as Data | undefined;
+        if (dataManager) {
+            removeMessagePreSendListener(dataManager._onMessagePreSend_preSend);
+            clearInterval(dataManager._storageAutoSaveProtocol_interval);
+        }
     },
 });

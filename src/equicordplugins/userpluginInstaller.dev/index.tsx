@@ -98,7 +98,9 @@ export default definePlugin({
 
         await Native.ensurePluginsDirectory();
 
-        plSettings.customEntries.push(this.section);
+        if (!plSettings.customEntries.includes(this.section)) {
+            plSettings.customEntries.push(this.section);
+        }
 
         this.pluginsWithUpdates.registerCallback((value, id) => {
             if (value.plugins.length === 0) return;
@@ -122,8 +124,10 @@ export default definePlugin({
         await this.checkPluginUpdates();
     },
     stop() {
-        // @ts-ignore
-        plSettings.customEntries.splice(plSettings.customEntries.indexOf(this.section), 1);
+        const index = plSettings.customEntries.indexOf(this.section);
+        if (index !== -1) {
+            plSettings.customEntries.splice(index, 1);
+        }
     },
     plugins: new VariableWithCallbacks<{
         name: string;

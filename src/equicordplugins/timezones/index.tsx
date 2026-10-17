@@ -109,7 +109,8 @@ export const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         component: () => (
             <Button onClick={() => {
-                openModal(modalProps => <SetTimezoneModal userId={UserStore.getCurrentUser().id} modalProps={modalProps} database={true} />);
+                const userId = UserStore.getCurrentUser()?.id;
+                if (userId) openModal(modalProps => <SetTimezoneModal userId={userId} modalProps={modalProps} database={true} />);
             }}>
                 Set Timezone on Database
             </Button>
@@ -124,7 +125,9 @@ export const settings = definePluginSettings({
                 color={Button.Colors.RED}
                 onClick={async () => {
                     try {
-                        await setUserDatabaseTimezone(UserStore.getCurrentUser().id, null);
+                        const userId = UserStore.getCurrentUser()?.id;
+                        if (!userId) return;
+                        await setUserDatabaseTimezone(userId, null);
                         await deleteTimezone();
                     } catch (error) {
                         console.error("Error resetting database timezone:", error);
@@ -306,7 +309,8 @@ export default definePlugin({
 
     toolboxActions: {
         "Set Database Timezone": () => {
-            openModal(modalProps => <SetTimezoneModal userId={UserStore.getCurrentUser().id} modalProps={modalProps} database={true} />);
+            const userId = UserStore.getCurrentUser()?.id;
+            if (userId) openModal(modalProps => <SetTimezoneModal userId={userId} modalProps={modalProps} database={true} />);
         },
         "Refresh Database Timezones": async () => {
             try {
@@ -341,7 +345,8 @@ export default definePlugin({
                             <Button
                                 color={Button.Colors.GREEN}
                                 onClick={() => {
-                                    openModal(modalProps => <SetTimezoneModal userId={UserStore.getCurrentUser().id} modalProps={modalProps} database={true} />);
+                                    const userId = UserStore.getCurrentUser()?.id;
+                                    if (userId) openModal(modalProps => <SetTimezoneModal userId={userId} modalProps={modalProps} database={true} />);
                                 }}
                             >
                                 Want to save your timezone to the database? Click here to set it.
@@ -362,7 +367,7 @@ export default definePlugin({
         if (!settings.store.showProfileTime || !props?.user?.id) return null;
 
         const userId = props.user.id;
-        if (userId === UserStore.getCurrentUser().id && !settings.store.showOwnTimezone) return null;
+        if (userId === UserStore.getCurrentUser()?.id && !settings.store.showOwnTimezone) return null;
 
         return <TimestampComponent userId={userId} type="profile" />;
     },
@@ -373,7 +378,7 @@ export default definePlugin({
 
         let userId = props.message.author.id;
 
-        if (userId === UserStore.getCurrentUser().id) {
+        if (userId === UserStore.getCurrentUser()?.id) {
             const channel = ChannelStore.getChannel(props.message.channel_id);
             const recipientId = channel?.isDM() ? channel.getRecipientId() : null;
 

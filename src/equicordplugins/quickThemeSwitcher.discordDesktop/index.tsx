@@ -259,8 +259,12 @@ export default definePlugin({
         </>
     ),
 
+    isRunning: false,
+
     async start() {
+        this.isRunning = true;
         themeList = await getAllThemes();
+        if (!this.isRunning) return;
         currentIndex = findCurrentThemeIndex();
         lastThemeCount = themeList.filter(t => t.type === "local").length;
 
@@ -277,6 +281,7 @@ export default definePlugin({
     },
 
     stop() {
+        this.isRunning = false;
         document.removeEventListener("keydown", handleKeyDown);
 
         SettingsStore.removeChangeListener("themeLinks", handleThemeLinksChange);

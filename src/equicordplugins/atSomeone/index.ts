@@ -46,9 +46,11 @@ export default definePlugin({
 const randomUser = () => {
     const guildId = SelectedGuildStore.getGuildId();
     if (guildId === null) {
-        const dmUsers = ChannelStore.getChannel(SelectedChannelStore.getChannelId()).recipients;
+        const dmUsers = ChannelStore.getChannel(SelectedChannelStore.getChannelId())?.recipients;
+        if (!dmUsers?.length) return "";
         return dmUsers[~~(dmUsers.length * Math.random())];
     }
     const members = GuildMemberStore.getMembers(guildId);
-    return members[~~(members.length * Math.random())].userId;
+    if (!members?.length) return "";
+    return members[~~(members.length * Math.random())]?.userId ?? "";
 };

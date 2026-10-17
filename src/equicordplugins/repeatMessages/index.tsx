@@ -84,16 +84,11 @@ function repeatMessage(msg: Message) {
                 channel_id: msg.channel_id,
                 message_id: msg.id
             } : undefined,
-            stickerIds: msg.stickerItems.map(s => s.id)
+            stickerIds: msg.stickerItems?.map(s => s.id)
         });
 }
 
 const messageCtxPatch: NavContextMenuPatchCallback = (children, { msg }: { msg: Message; }) => {
-    if (!msg) return null;
-
-    const group = findGroupChildrenByChildId("copy-text", children);
-    if (!group) return;
-
     const forceUpdate = useForceUpdater();
 
     useEffect(() => {
@@ -109,6 +104,11 @@ const messageCtxPatch: NavContextMenuPatchCallback = (children, { msg }: { msg: 
             window.removeEventListener("keyup", handler);
         };
     }, []);
+
+    if (!msg) return null;
+
+    const group = findGroupChildrenByChildId("copy-text", children);
+    if (!group) return;
 
     group.splice(group.findIndex(c => c?.props?.id === "reply") + 1, 0, (
         <Menu.MenuItem

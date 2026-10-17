@@ -76,7 +76,7 @@ export async function deauthorizeUser() {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${uniqueToken}`
         },
-        body: JSON.stringify({ userId: UserStore.getCurrentUser().id })
+        body: JSON.stringify({ userId: UserStore.getCurrentUser()?.id })
     });
 
     if (res.ok) {

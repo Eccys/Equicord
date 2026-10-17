@@ -33,7 +33,7 @@ export const settings = definePluginSettings({
 
                 const updateKeys = () => {
                     if (keys.size === 0 || !document.querySelector(`.${cl("key-recorder-button")}`)) {
-                        const longestArray = keyLists.reduce((a, b) => a.length > b.length ? a : b);
+                        const longestArray = keyLists.reduce((a, b) => a.length > b.length ? a : b, [] as string[]);
                         if (longestArray.length > 0) {
                             settings.store.hotkey = longestArray.map(key => key.toLowerCase());
                         }

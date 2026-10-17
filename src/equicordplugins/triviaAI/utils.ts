@@ -38,7 +38,7 @@ export async function getPayload(message: Message): Promise<ApiMessage[] | null>
     const prevMessages = getPreviousMessages(message, settings.store.context);
     const allMessages = [...prevMessages, message];
 
-    const currentUserId = UserStore.getCurrentUser().id;
+    const currentUserId = UserStore.getCurrentUser()?.id;
 
     const payload: ApiMessage[] = [];
 

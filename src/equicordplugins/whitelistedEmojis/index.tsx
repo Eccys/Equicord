@@ -410,13 +410,17 @@ export default definePlugin({
         }
     ],
     settings: settings,
+    isRunning: false,
     async start() {
+        this.isRunning = true;
         cache_allowedList = await getAllowedList();
+        if (!this.isRunning) return;
         notifyCacheChange();
         addContextMenuPatch("expression-picker", expressionPickerPatch);
         addContextMenuPatch("guild-context", guildContextPatch);
     },
     stop() {
+        this.isRunning = false;
         removeContextMenuPatch("expression-picker", expressionPickerPatch);
         removeContextMenuPatch("guild-context", guildContextPatch);
     },

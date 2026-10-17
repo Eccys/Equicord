@@ -21,7 +21,7 @@ interface KeybindInputProps {
 }
 
 function KeybindInput({ label, description, settingKey, enabledKey }: KeybindInputProps) {
-    const settingsValues = settings.use([settingKey]);
+    const settingsValues = settings.use(enabledKey ? [settingKey, enabledKey] : [settingKey]);
     const currentKeybind = settingsValues[settingKey];
     const [isListening, setIsListening] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -110,7 +110,7 @@ function KeybindInput({ label, description, settingKey, enabledKey }: KeybindInp
         setError(null);
     };
 
-    const isEnabled = enabledKey ? settings.use([enabledKey])[enabledKey] : true;
+    const isEnabled = enabledKey ? settingsValues[enabledKey] : true;
 
     return (
         <div className="channelTabs-keybind-input">

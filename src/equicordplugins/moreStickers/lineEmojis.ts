@@ -57,19 +57,28 @@ function toStickerId(stickerId: string, lineEmojiPackId: string): string {
     return "MoreStickers:Line-Emoji:" + lineEmojiPackId + ":" + stickerId;
 }
 
+function safeParsePreview<T>(raw?: string): T | null {
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw) as T;
+    } catch {
+        return null;
+    }
+}
+
 /**
   * Convert LineEmoji to Sticker
   *
   * @param {LineEmoji} s The LineEmoji to convert.
   * @return {Sticker} The sticker.
   */
-export function convertSticker(s: LineEmoji): Sticker {
+export function convertSticker(s: LineEmoji | null | undefined): Sticker {
     return {
-        id: toStickerId(s.id, s.stickerPackId),
-        image: s.animationUrl || s.staticUrl,
-        title: s.id,
-        stickerPackId: toStickerPackId(s.stickerPackId),
-        isAnimated: !!s.animationUrl
+        id: toStickerId(s?.id ?? "", s?.stickerPackId ?? ""),
+        image: s?.animationUrl || s?.staticUrl || "",
+        title: s?.id ?? "",
+        stickerPackId: toStickerPackId(s?.stickerPackId ?? ""),
+        isAnimated: !!s?.animationUrl
     };
 }
 
@@ -84,7 +93,7 @@ export function convert(sp: LineEmojiPack): StickerPack {
         id: toStickerPackId(sp.id),
         title: sp.title,
         author: sp.author,
-        logo: convertSticker(sp.mainImage),
+        logo: convertSticker(sp.mainImage ?? sp.stickers[0]),
         stickers: sp.stickers.map(convertSticker)
     };
 }
@@ -97,14 +106,14 @@ export function convert(sp: LineEmojiPack): StickerPack {
   */
 export function parseHtml(html: string): LineEmojiPack {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const mainImage = JSON.parse((doc.querySelector("[ref=mainImage]") as HTMLElement)?.dataset?.preview ?? "null") as LineEmoji;
-    const { id } = mainImage;
-
-    const stickers =
+    const rawMainImage = safeParsePreview<LineEmoji>((doc.querySelector("[ref=mainImage]") as HTMLElement)?.dataset?.preview);
+    const rawStickers =
         [...doc.querySelectorAll(".FnStickerPreviewItem")]
-            .map(x => JSON.parse((x as HTMLElement).dataset.preview ?? "null"))
-            .filter(x => x !== null)
-            .map(x => ({ ...x, stickerPackId: id })) as LineEmoji[];
+            .map(x => safeParsePreview<LineEmoji>((x as HTMLElement).dataset?.preview))
+            .filter((x): x is LineEmoji => x !== null);
+    const id = rawMainImage?.id ?? rawStickers[0]?.id ?? "";
+    const stickers = rawStickers.map(x => ({ ...x, stickerPackId: id }));
+    const mainImage = rawMainImage ? { ...rawMainImage, stickerPackId: id } : (stickers[0] ?? null);
 
     const stickerPack = {
         title: doc.querySelector("[data-test=emoji-name-title]")?.textContent ?? "null",

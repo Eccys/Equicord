@@ -34,7 +34,7 @@ export function stripTransientRenderState(message: any) {
 export function cleanupMessage(message: any, removeDetails: boolean = true): LoggedMessageJSON {
     const ret: LoggedMessageJSON = typeof message.toJS === "function" ? JSON.parse(JSON.stringify(message.toJS())) : { ...message };
     stripTransientRenderState(ret);
-    if (removeDetails) {
+    if (removeDetails && ret.author) {
         ret.author.phone = undefined;
         ret.author.email = undefined;
     }
@@ -68,7 +68,7 @@ export function cleanUpCachedMessage(message: any) {
 // stolen from mlv2
 export function cleanupEmbed(embed) {
     /* backported code from MLV2 rewrite */
-    if (!embed.id) return embed; /* already cleaned */
+    if (!embed?.id) return embed; /* already cleaned */
     const retEmbed: any = {};
     if (typeof embed.rawTitle === "string") retEmbed.title = embed.rawTitle;
     if (typeof embed.rawDescription === "string") retEmbed.description = embed.rawDescription;
@@ -76,11 +76,11 @@ export function cleanupEmbed(embed) {
     // if (typeof embed.color === "string") retEmbed.color = ZeresPluginLibrary.ColorConverter.hex2int(embed.color);
     if (typeof embed.type !== "undefined") retEmbed.type = embed.type;
     if (typeof embed.url !== "undefined") retEmbed.url = embed.url;
-    if (typeof embed.provider === "object") retEmbed.provider = { name: embed.provider.name, url: embed.provider.url };
-    if (typeof embed.footer === "object") retEmbed.footer = { text: embed.footer.text, icon_url: embed.footer.iconURL, proxy_icon_url: embed.footer.iconProxyURL };
-    if (typeof embed.author === "object") retEmbed.author = { name: embed.author.name, url: embed.author.url, icon_url: embed.author.iconURL, proxy_icon_url: embed.author.iconProxyURL };
-    if (typeof embed.timestamp === "object" && embed.timestamp._isAMomentObject) retEmbed.timestamp = embed.timestamp.milliseconds();
-    if (typeof embed.thumbnail === "object") {
+    if (typeof embed.provider === "object" && embed.provider !== null) retEmbed.provider = { name: embed.provider.name, url: embed.provider.url };
+    if (typeof embed.footer === "object" && embed.footer !== null) retEmbed.footer = { text: embed.footer.text, icon_url: embed.footer.iconURL, proxy_icon_url: embed.footer.iconProxyURL };
+    if (typeof embed.author === "object" && embed.author !== null) retEmbed.author = { name: embed.author.name, url: embed.author.url, icon_url: embed.author.iconURL, proxy_icon_url: embed.author.iconProxyURL };
+    if (typeof embed.timestamp === "object" && embed.timestamp !== null && embed.timestamp._isAMomentObject) retEmbed.timestamp = embed.timestamp.milliseconds();
+    if (typeof embed.thumbnail === "object" && embed.thumbnail !== null) {
         if (typeof embed.thumbnail.proxyURL === "string" || (typeof embed.thumbnail.url === "string" && !embed.thumbnail.url.endsWith("?format=jpeg"))) {
             retEmbed.thumbnail = {
                 url: embed.thumbnail.url,
@@ -90,7 +90,7 @@ export function cleanupEmbed(embed) {
             };
         }
     }
-    if (typeof embed.image === "object") {
+    if (typeof embed.image === "object" && embed.image !== null) {
         retEmbed.image = {
             url: embed.image.url,
             proxy_url: embed.image.proxyURL,
@@ -98,7 +98,7 @@ export function cleanupEmbed(embed) {
             height: embed.image.height
         };
     }
-    if (typeof embed.video === "object") {
+    if (typeof embed.video === "object" && embed.video !== null) {
         retEmbed.video = {
             url: embed.video.url,
             proxy_url: embed.video.proxyURL,

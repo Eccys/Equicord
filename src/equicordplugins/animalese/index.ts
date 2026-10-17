@@ -211,7 +211,7 @@ export default definePlugin({
                 urlPattern.test(message.content)
                 || message.content.length > maxLength
                 || !processOwnMessages
-                && String(message.author.id) === String(UserStore.getCurrentUser().id)
+                && String(message.author?.id) === String(UserStore.getCurrentUser()?.id)
             ) return;
 
             try {

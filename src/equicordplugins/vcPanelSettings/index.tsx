@@ -145,7 +145,7 @@ function OutputDeviceComponent() {
     return (
         <>
             {settings.store.showOutputDeviceHeader && <Heading>Output device</Heading>}
-            <Select options={Object.values(MediaEngineStore.getOutputDevices()).map((device: any /* i am NOT typing this*/) => {
+            <Select options={Object.values(MediaEngineStore.getOutputDevices() ?? {}).map((device: any /* i am NOT typing this*/) => {
                 return { value: device.id, label: settings.store.showOutputDeviceHeader ? device.name : `🔊 ${device.name}` };
             })}
                 serialize={identity}
@@ -174,7 +174,7 @@ function InputDeviceComponent() {
     return (
         <div style={{ marginTop: "10px" }}>
             {settings.store.showInputDeviceHeader && <Heading>Input device</Heading>}
-            <Select options={Object.values(MediaEngineStore.getInputDevices()).map((device: any /* i am NOT typing this*/) => {
+            <Select options={Object.values(MediaEngineStore.getInputDevices() ?? {}).map((device: any /* i am NOT typing this*/) => {
                 return { value: device.id, label: settings.store.showInputDeviceHeader ? device.name : `🎤 ${device.name}` };
             })}
                 serialize={identity}
@@ -203,7 +203,7 @@ function VideoDeviceComponent() {
     return (
         <div style={{ marginTop: "10px" }}>
             {settings.store.showVideoDeviceHeader && <Heading>Camera</Heading>}
-            <Select options={Object.values(MediaEngineStore.getVideoDevices()).map((device: VideoDevice) => {
+            <Select options={Object.values(MediaEngineStore.getVideoDevices() ?? {}).map((device: VideoDevice) => {
                 return { value: device.id, label: settings.store.showVideoDeviceHeader ? device.name : `📷 ${device.name}` };
             })}
                 serialize={identity}

@@ -46,10 +46,11 @@ export default definePlugin({
 
     modifyMentions(message: MessageJSON) {
         const user = UserStore.getCurrentUser();
-        if (message.author.id === user.id) return;
+        if (!user || !message?.author || message.author.id === user.id) return;
 
         const repliedMessage = this.getRepliedMessage(message);
-        if (!repliedMessage || repliedMessage.author.id !== user.id) return;
+        if (!repliedMessage?.author || repliedMessage.author.id !== user.id) return;
+        if (!Array.isArray(message.mentions)) return;
 
         const { replyPingBlacklist, replyPingWhitelist, alwaysPingOnReply } = settings.plain;
         const authorId = message.author.id;
@@ -72,6 +73,6 @@ export default definePlugin({
 
     getRepliedMessage(message: MessageJSON) {
         const ref = message.message_reference;
-        return ref && MessageStore.getMessage(ref.channel_id, ref.message_id);
+        return ref?.channel_id && ref?.message_id ? MessageStore.getMessage(ref.channel_id, ref.message_id) : undefined;
     },
 });

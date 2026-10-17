@@ -116,6 +116,7 @@ export default definePlugin({
             if (settings.store.ignoreBots && UserStore.getUser(userId)?.bot) return;
             if (settings.store.ignoreBlocked && RelationshipStore.isBlocked(messageAuthorId)) return;
             if (channelId !== SelectedChannelStore.getChannelId()) return;
+            if (!emoji?.name) return;
 
             const name = emoji.name.toLowerCase();
             if (name !== MOYAI && !name.includes("moyai") && !name.includes("moai")) return;

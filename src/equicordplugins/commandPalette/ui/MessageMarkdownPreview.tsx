@@ -123,6 +123,7 @@ export function MessageMarkdownPreview({ content, channelId, files }: {
     if (!message && attachments.length === 0) return null;
 
     const user = UserStore.getCurrentUser();
+    if (!user) return null;
     const author = { ...user, nick: user.globalName || user.username };
 
     return (

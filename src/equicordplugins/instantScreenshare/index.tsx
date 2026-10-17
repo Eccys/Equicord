@@ -39,12 +39,14 @@ async function autoStartStream(instant = true) {
     }
 
     const streamMedia = await getCurrentMedia();
+    if (!streamMedia) return;
     const preview = StreamPreviewSettings.getSetting();
     const { soundshareEnabled } = ApplicationStreamingSettingsStore.getState();
     let sourceId = streamMedia.id;
     if (streamMedia.type === "video_device") sourceId = `camera:${streamMedia.id}`;
 
-    if (isStreaming && streamKey.endsWith(UserStore.getCurrentUser().id)) {
+    const currentUserId = UserStore.getCurrentUser()?.id;
+    if (isStreaming && typeof streamKey === "string" && currentUserId && streamKey.endsWith(currentUserId)) {
         stopStream(streamKey);
     } else {
         startStream(channel.guild_id ?? null, selected, {
@@ -111,7 +113,8 @@ export default definePlugin({
     flux: {
         async VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             if (!settings.store.toolboxManagement || !settings.store.instantScreenshare) return;
-            const myId = UserStore.getCurrentUser().id;
+            const myId = UserStore.getCurrentUser()?.id;
+            if (!myId) return;
             for (const state of voiceStates) {
                 const { userId, channelId } = state;
                 if (userId !== myId) continue;
@@ -129,11 +132,11 @@ export default definePlugin({
             }
         },
         STREAM_CREATE: d => {
-            streamKey = d;
+            streamKey = typeof d === "string" ? d : d?.streamKey;
             isStreaming = true;
         },
         STREAM_DELETE: d => {
-            streamKey = d;
+            streamKey = typeof d === "string" ? d : d?.streamKey;
             isStreaming = false;
         }
     },

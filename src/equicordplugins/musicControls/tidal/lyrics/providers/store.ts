@@ -24,6 +24,7 @@ function showNotif(title: string, body: string) {
 }
 
 let tidalStoreChangeListener: (() => void) | undefined;
+let tidalStoreListenerAttached = false;
 
 export const TidalLrcStore = proxyLazyWebpack(() => {
     let lyrics: EnhancedLyric[] | null = null;
@@ -52,13 +53,21 @@ export const TidalLrcStore = proxyLazyWebpack(() => {
 
     TidalStore.addChangeListener(handleTidalStoreChange);
     tidalStoreChangeListener = handleTidalStoreChange;
+    tidalStoreListenerAttached = true;
 
     return store;
 });
 
+export function startTidalLrcStore() {
+    if (tidalStoreChangeListener && !tidalStoreListenerAttached) {
+        TidalStore.addChangeListener(tidalStoreChangeListener);
+        tidalStoreListenerAttached = true;
+    }
+}
+
 export function stopTidalLrcStore() {
-    if (tidalStoreChangeListener) {
+    if (tidalStoreChangeListener && tidalStoreListenerAttached) {
         TidalStore.removeChangeListener(tidalStoreChangeListener);
-        tidalStoreChangeListener = undefined;
+        tidalStoreListenerAttached = false;
     }
 }

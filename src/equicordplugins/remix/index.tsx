@@ -59,7 +59,9 @@ const MessageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
 
 export function sendRemix(blob: Blob) {
     const currentChannelId = SelectedChannelStore.getChannelId();
+    if (!currentChannelId) return;
     const channel = ChannelStore.getChannel(currentChannelId);
+    if (!channel) return;
     const reply = PendingReplyStore.getPendingReply(currentChannelId);
     if (reply) FluxDispatcher.dispatch({ type: "DELETE_PENDING_REPLY", currentChannelId });
 

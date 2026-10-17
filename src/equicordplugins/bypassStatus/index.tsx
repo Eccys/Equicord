@@ -63,13 +63,13 @@ async function showNotification(message: Message, guildId: string | undefined): 
         });
 
         message.content = message.content.replace(userRegex, (match: any, userId: string) => {
-            return `@${(UserStore.getUser(userId) as any).globalName}`;
+            return `@${(UserStore.getUser(userId) as any)?.globalName ?? userId}`;
         });
 
         await Notifications.showNotification({
             title: `${(message.author as any).globalName} ${guildId ? `(#${channel?.name}, ${ChannelStore.getChannel(channel?.parent_id)?.name})` : ""}`,
             body: message.content,
-            icon: UserStore.getUser(message.author.id).getAvatarURL(undefined, undefined, false),
+            icon: UserStore.getUser(message.author.id)?.getAvatarURL(undefined, undefined, false),
             onClick: function (): void {
                 NavigationRouter.transitionTo(`/channels/${guildId ?? "@me"}/${message.channel_id}/${message.id}`);
             }
@@ -88,7 +88,7 @@ function ContextCallback(name: "guild" | "user" | "channel"): NavContextMenuPatc
         const type = props[name];
         if (!type) return;
         const enabled = settings.store[`${name}s`].split(", ").includes(type.id);
-        if (name === "user" && type.id === UserStore.getCurrentUser().id) return;
+        if (name === "user" && type.id === UserStore.getCurrentUser()?.id) return;
         children.splice(-1, 0, (
             <Menu.MenuGroup>
                 <Menu.MenuItem
@@ -179,6 +179,7 @@ export default definePlugin({
         async MESSAGE_CREATE({ message, guildId, channelId }: IMessageCreate): Promise<void> {
             try {
                 const currentUser = UserStore.getCurrentUser();
+                if (!currentUser) return;
                 const userStatus = await PresenceStore.getStatus(currentUser.id);
                 const currentChannelId = getCurrentChannel()?.id ?? "0";
                 if (message.state === "SENDING" || message.content === "" || message.author.id === currentUser.id || (channelId === currentChannelId && WindowStore.isFocused()) || userStatus !== settings.store.statusToUse) {

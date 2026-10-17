@@ -41,7 +41,7 @@ function log(entry: Omit<VoiceChannelLogEntry, "timestamp">) {
 const VOICE_CHANNEL_TYPES = new Set([ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE, ChannelType.DM, ChannelType.GROUP_DM]);
 
 const patchChannelContextMenu: NavContextMenuPatchCallback = (children, { channel }) => {
-    if (!VOICE_CHANNEL_TYPES.has(channel.type)) return;
+    if (!channel || !VOICE_CHANNEL_TYPES.has(channel.type)) return;
     children.push(
         <Menu.MenuItem
             id="vc-view-voice-channel-logs"
@@ -85,8 +85,8 @@ export default definePlugin({
             clientOldChannelId = channelId ?? undefined;
 
             if (leaving && oldChannel) {
-                const userId = UserStore.getCurrentUser().id;
-                if (settings.store.logJoinLeave) {
+                const userId = UserStore.getCurrentUser()?.id;
+                if (userId && settings.store.logJoinLeave) {
                     log({ type: "leave", userId, channelId: oldChannel });
                 }
                 setCallStartTime(null);
@@ -94,14 +94,15 @@ export default definePlugin({
             } else if (joining && channelId && channelId !== oldChannel) {
                 clientJoinedAt = Date.now();
                 setCallStartTime(new Date());
-                if (settings.store.logJoinLeave) {
-                    log({ type: "join", userId: UserStore.getCurrentUser().id, channelId });
+                const userId = UserStore.getCurrentUser()?.id;
+                if (userId && settings.store.logJoinLeave) {
+                    log({ type: "join", userId, channelId });
                 }
             }
         },
 
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
-            const clientUserId = UserStore.getCurrentUser().id;
+            const clientUserId = UserStore.getCurrentUser()?.id;
             const suppressJoins = Date.now() - clientJoinedAt < 5000;
 
             for (const state of voiceStates) {
@@ -246,10 +247,11 @@ export default definePlugin({
         if (clientOldChannelId) {
             clientJoinedAt = Date.now();
             setCallStartTime(new Date());
-            if (settings.store.logJoinLeave) {
-                log({ type: "join", userId: UserStore.getCurrentUser().id, channelId: clientOldChannelId });
+            const userId = UserStore.getCurrentUser()?.id;
+            if (userId && settings.store.logJoinLeave) {
+                log({ type: "join", userId, channelId: clientOldChannelId });
             }
-            const states = VoiceStateStore.getVoiceStatesForChannel(clientOldChannelId);
+            const states = VoiceStateStore.getVoiceStatesForChannel(clientOldChannelId) ?? {};
             for (const [userId, s] of Object.entries(states)) {
                 existingUsers.add(userId);
                 previousStates.set(userId, {

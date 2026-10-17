@@ -80,7 +80,7 @@ export async function getCurrentMedia() {
             }));
             sources.push(...videoSources);
         } catch (e) {
-            new log.warn("Failed to get video devices:", e);
+            log.warn("Failed to get video devices:", e);
         }
     }
 
@@ -89,7 +89,7 @@ export async function getCurrentMedia() {
 
     log.error(`Stream Media "${settings.store.streamMedia}" not found. Resetting to default.`);
 
-    settings.store.streamMedia = sources[0];
+    settings.store.streamMedia = sources[0]?.id;
     return sources[0];
 }
 
