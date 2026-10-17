@@ -315,7 +315,7 @@ export default definePlugin({
                 {
                     // Overwrite non local proto changes with our local settings
                     match: /let{settings:/,
-                    replace: "arguments[0].local||$self.handleProtoChange(arguments[0].settings.proto);$&"
+                    replace: "arguments[0].local||arguments[0].settings.type!==1||$self.handleProtoChange(arguments[0].settings.proto);$&"
                 }
             ]
         },
@@ -436,17 +436,24 @@ export default definePlugin({
             const premiumType = OverridePremiumTypeStore.getState().premiumTypeActual ?? 0;
 
             if (premiumType !== 2) {
-                proto.appearance ??= AppearanceSettingsActionCreators.create();
-
                 const protoStoreAppearenceSettings = UserSettingsProtoStore.settings.appearance;
 
-                const appearanceSettingsOverwrite = AppearanceSettingsActionCreators.create({
-                    ...proto.appearance,
-                    theme: protoStoreAppearenceSettings?.theme,
-                    clientThemeSettings: protoStoreAppearenceSettings?.clientThemeSettings
-                });
+                if (
+                    protoStoreAppearenceSettings?.theme != null && (
+                        protoStoreAppearenceSettings.clientThemeSettings?.backgroundGradientPresetId != null
+                        || protoStoreAppearenceSettings.clientThemeSettings?.customUserThemeSettings != null
+                    )
+                ) {
+                    proto.appearance ??= AppearanceSettingsActionCreators.create();
 
-                proto.appearance = appearanceSettingsOverwrite;
+                    const appearanceSettingsOverwrite = AppearanceSettingsActionCreators.create({
+                        ...proto.appearance,
+                        theme: protoStoreAppearenceSettings.theme,
+                        clientThemeSettings: protoStoreAppearenceSettings.clientThemeSettings
+                    });
+
+                    proto.appearance = appearanceSettingsOverwrite;
+                }
             }
         } catch (err) {
             new Logger("FakeNitro").error(err);
