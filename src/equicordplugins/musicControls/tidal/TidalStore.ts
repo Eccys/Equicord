@@ -72,19 +72,26 @@ class TidalSocket {
 
     public reconnect() {
         if (this.ready || this.destroyed) return;
+        if (this.socket && (this.socket.readyState === WebSocket.CONNECTING || this.socket.readyState === WebSocket.OPEN)) return;
         try {
             this.initWs();
         } catch (e) {
             logger.error("Failed to connect to Tidal WebSocket", e);
             return;
         }
-        this.ready = true;
     }
 
     public close() {
         this.destroyed = true;
+        this.ready = false;
         clearTimeout(this.reconnectTimeout);
         this.socket?.close();
+    }
+
+    public reopen() {
+        if (!this.destroyed) return;
+        this.destroyed = false;
+        this.reconnect();
     }
 
     get routes() {
@@ -252,6 +259,10 @@ export const TidalStore = proxyLazyWebpack(() => {
             return true;
         }
 
+        public startSocket() {
+            this.socket.reopen();
+        }
+
         public destroy() {
             this.socket.close();
         }
@@ -261,6 +272,10 @@ export const TidalStore = proxyLazyWebpack(() => {
 
     return store;
 });
+
+export function startTidalStore() {
+    TidalStore[SYM_LAZY_CACHED]?.startSocket();
+}
 
 export function stopTidalStore() {
     TidalStore[SYM_LAZY_CACHED]?.destroy();

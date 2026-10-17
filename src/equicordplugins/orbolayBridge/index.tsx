@@ -40,13 +40,16 @@ const sendConfig = () => {
 
 let ws: WebSocket | null = null;
 let currentChannel: string | null = null;
+let connectTimeout: ReturnType<typeof setTimeout> | null = null;
+let stopped = false;
 
 const waitForPopulate = async fn => {
-    while (true) {
+    while (!stopped) {
         const result = await fn();
         if (result) return result;
         await new Promise(r => setTimeout(r, 500));
     }
+    return null;
 };
 
 const stateToPayload = (guildId: string, state: ChannelState) => ({
@@ -63,6 +66,7 @@ const stateToPayload = (guildId: string, state: ChannelState) => ({
 });
 
 const incoming = payload => {
+    if (!payload || typeof payload !== "object") return;
     switch (payload.cmd) {
         case "TOGGLE_MUTE":
             FluxDispatcher.dispatch({
@@ -87,7 +91,8 @@ const incoming = payload => {
             });
             break;
         case "STOP_STREAM": {
-            const userId = UserStore.getCurrentUser().id;
+            const userId = UserStore.getCurrentUser()?.id;
+            if (!userId) return;
             const voiceState = VoiceStateStore.getVoiceStateForUser(userId);
             if (!voiceState?.channelId) return;
             const channel = ChannelStore.getChannel(voiceState.channelId);
@@ -118,7 +123,8 @@ const incoming = payload => {
 };
 
 const handleSpeaking = dispatch => {
-    ws?.send(
+    if (ws?.readyState !== WebSocket.OPEN) return;
+    ws.send(
         JSON.stringify({
             cmd: "VOICE_STATE_UPDATE",
             state: {
@@ -130,7 +136,8 @@ const handleSpeaking = dispatch => {
 };
 
 const handleMessageNotification = dispatch => {
-    ws?.send(
+    if (ws?.readyState !== WebSocket.OPEN || !dispatch?.message) return;
+    ws.send(
         JSON.stringify({
             cmd: "MESSAGE_NOTIFICATION",
             message: {
@@ -146,7 +153,8 @@ const handleMessageNotification = dispatch => {
 };
 
 const handleVoiceStateUpdates = async dispatch => {
-    const { id } = UserStore.getCurrentUser();
+    const id = UserStore.getCurrentUser()?.id;
+    if (!id || !Array.isArray(dispatch?.voiceStates)) return;
 
     for (const state of dispatch.voiceStates) {
         const ourState = state.userId === id;
@@ -157,23 +165,28 @@ const handleVoiceStateUpdates = async dispatch => {
                 const voiceStates = await waitForPopulate(() =>
                     VoiceStateStore?.getVoiceStatesForChannel(state.channelId)
                 );
+                if (!voiceStates) return;
 
-                ws?.send(
-                    JSON.stringify({
-                        cmd: "CHANNEL_JOINED",
-                        states: Object.values(voiceStates).map(s => stateToPayload(guildId, s as ChannelState)),
-                    })
-                );
+                if (ws?.readyState === WebSocket.OPEN) {
+                    ws.send(
+                        JSON.stringify({
+                            cmd: "CHANNEL_JOINED",
+                            states: Object.values(voiceStates).map(s => stateToPayload(guildId, s as ChannelState)),
+                        })
+                    );
+                }
 
                 currentChannel = state.channelId;
 
                 break;
             } else if (!state.channelId) {
-                ws?.send(
-                    JSON.stringify({
-                        cmd: "CHANNEL_LEFT",
-                    })
-                );
+                if (ws?.readyState === WebSocket.OPEN) {
+                    ws.send(
+                        JSON.stringify({
+                            cmd: "CHANNEL_LEFT",
+                        })
+                    );
+                }
 
                 currentChannel = null;
 
@@ -186,18 +199,21 @@ const handleVoiceStateUpdates = async dispatch => {
             (state.channelId === currentChannel ||
                 state.oldChannelId === currentChannel)
         ) {
-            ws?.send(
-                JSON.stringify({
-                    cmd: "VOICE_STATE_UPDATE",
-                    state: stateToPayload(guildId, state as ChannelState),
-                })
-            );
+            if (ws?.readyState === WebSocket.OPEN) {
+                ws.send(
+                    JSON.stringify({
+                        cmd: "VOICE_STATE_UPDATE",
+                        state: stateToPayload(guildId, state as ChannelState),
+                    })
+                );
+            }
         }
     }
 };
 
 const handleStreamerMode = dispatch => {
-    ws?.send(
+    if (ws?.readyState !== WebSocket.OPEN) return;
+    ws.send(
         JSON.stringify({
             cmd: "STREAMER_MODE",
             enabled: dispatch.value,
@@ -208,8 +224,10 @@ const handleStreamerMode = dispatch => {
 const createWebsocket = () => {
     console.log("Attempting to connect to Orbolay server");
     if (ws?.close) ws.close();
+    if (connectTimeout) clearTimeout(connectTimeout);
 
-    setTimeout(() => {
+    connectTimeout = setTimeout(() => {
+        if (stopped) return;
         if (ws?.readyState !== WebSocket.OPEN) {
             showToast("Orbolay websocket could not connect. Is it running?", "failure");
             ws = null;
@@ -219,13 +237,14 @@ const createWebsocket = () => {
 
     // Use the configured port locally to open the websocket, but do not include it in REGISTER_CONFIG
     ws = new WebSocket("ws://127.0.0.1:" + settings.store.port);
-    ws.onerror = e => {
+    ws.onerror = () => {
         ws?.close?.();
         ws = null;
-        throw e;
     };
     ws.onmessage = e => {
-        incoming(JSON.parse(e.data));
+        try {
+            incoming(JSON.parse(e.data));
+        } catch { }
     };
     ws.onclose = () => {
         ws = null;
@@ -233,18 +252,20 @@ const createWebsocket = () => {
     ws.onopen = async () => {
         showToast("Connected to Orbolay server", "success");
 
-        const userId = await waitForPopulate(() => UserStore.getCurrentUser().id);
+        const userId = await waitForPopulate(() => UserStore.getCurrentUser()?.id);
         if (!userId) return;
 
         sendConfig();
 
         // Let the client know whether we are in streamer mode
-        ws?.send(
-            JSON.stringify({
-                cmd: "STREAMER_MODE",
-                enabled: StreamerModeStore.enabled,
-            })
-        );
+        if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(
+                JSON.stringify({
+                    cmd: "STREAMER_MODE",
+                    enabled: StreamerModeStore.enabled,
+                })
+            );
+        }
 
         const userVoiceState = VoiceStateStore.getVoiceStateForUser(userId);
         if (!userVoiceState || !userVoiceState.channelId) return;
@@ -256,12 +277,14 @@ const createWebsocket = () => {
         const channelState = VoiceStateStore.getVoiceStatesForChannel(userVoiceState.channelId);
         if (!guildId || !channelState) return;
 
-        ws?.send(
-            JSON.stringify({
-                cmd: "CHANNEL_JOINED",
-                states: Object.values(channelState).map(s => stateToPayload(guildId, s as ChannelState)),
-            })
-        );
+        if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(
+                JSON.stringify({
+                    cmd: "CHANNEL_JOINED",
+                    states: Object.values(channelState).map(s => stateToPayload(guildId, s as ChannelState)),
+                })
+            );
+        }
 
         currentChannel = userVoiceState.channelId;
     };
@@ -281,10 +304,16 @@ export default definePlugin({
     },
 
     start() {
+        stopped = false;
         createWebsocket();
     },
 
     stop() {
+        stopped = true;
+        if (connectTimeout) {
+            clearTimeout(connectTimeout);
+            connectTimeout = null;
+        }
         ws?.close?.();
         ws = null;
     }

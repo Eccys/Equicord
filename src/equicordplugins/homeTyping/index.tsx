@@ -27,7 +27,7 @@ export default definePlugin({
     isTyping() {
         return useStateFromStores([TypingStore], () =>
             PrivateChannelSortStore.getPrivateChannelIds().some(id =>
-                Object.keys(TypingStore.getTypingUsers(id)).some(userId => userId !== UserStore.getCurrentUser().id)
+                Object.keys(TypingStore.getTypingUsers(id)).some(userId => userId !== UserStore.getCurrentUser()?.id)
             )
         );
     },

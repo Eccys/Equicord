@@ -57,19 +57,28 @@ function toStickerId(stickerId: string, lineStickerPackId: string): string {
     return "MoreStickers:Line:Sticker:" + lineStickerPackId + ":" + stickerId;
 }
 
+function safeParsePreview<T>(raw?: string): T | null {
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw) as T;
+    } catch {
+        return null;
+    }
+}
+
 /**
   * Convert LineSticker to Sticker
   *
   * @param {LineSticker} s The LineSticker to convert.
   * @return {Sticker} The sticker.
   */
-export function convertSticker(s: LineSticker): Sticker {
+export function convertSticker(s: LineSticker | null | undefined): Sticker {
     return {
-        id: toStickerId(s.id, s.stickerPackId),
-        image: s.animationUrl || s.staticUrl,
-        title: s.id,
-        stickerPackId: toStickerPackId(s.stickerPackId),
-        isAnimated: !!s.animationUrl
+        id: toStickerId(s?.id ?? "", s?.stickerPackId ?? ""),
+        image: s?.animationUrl || s?.staticUrl || "",
+        title: s?.id ?? "",
+        stickerPackId: toStickerPackId(s?.stickerPackId ?? ""),
+        isAnimated: !!s?.animationUrl
     };
 }
 
@@ -84,7 +93,7 @@ export function convert(sp: LineStickerPack): StickerPack {
         id: toStickerPackId(sp.id),
         title: sp.title,
         author: sp.author,
-        logo: convertSticker(sp.mainImage),
+        logo: convertSticker(sp.mainImage ?? sp.stickers[0]),
         stickers: sp.stickers.map(convertSticker)
     };
 }
@@ -97,14 +106,14 @@ export function convert(sp: LineStickerPack): StickerPack {
   */
 export function parseHtml(html: string): LineStickerPack {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    const mainImage = JSON.parse((doc.querySelector("[ref=mainImage]") as HTMLElement)?.dataset?.preview ?? "null") as LineSticker | null;
-    const id = mainImage?.id ?? "";
-
-    const stickers =
+    const rawMainImage = safeParsePreview<LineSticker>((doc.querySelector("[ref=mainImage]") as HTMLElement)?.dataset?.preview);
+    const rawStickers =
         [...doc.querySelectorAll('[data-test="sticker-item"]')]
-            .map(x => JSON.parse((x as HTMLElement).dataset.preview ?? "null"))
-            .filter(x => x !== null)
-            .map(x => ({ ...x, stickerPackId: id })) as LineSticker[];
+            .map(x => safeParsePreview<LineSticker>((x as HTMLElement).dataset?.preview))
+            .filter((x): x is LineSticker => x !== null);
+    const id = rawMainImage?.id ?? rawStickers[0]?.id ?? "";
+    const stickers = rawStickers.map(x => ({ ...x, stickerPackId: id }));
+    const mainImage = rawMainImage ? { ...rawMainImage, stickerPackId: id } : (stickers[0] ?? null);
 
     const stickerPack = {
         title: doc.querySelector("[data-test=\"sticker-name-title\"]")?.textContent ?? "null",

@@ -27,9 +27,9 @@ import { migrateOldLyrics } from "./spotify/lyrics/api";
 import { SpotifyLyrics } from "./spotify/lyrics/components/lyrics";
 import { SpotifyPlayer } from "./spotify/PlayerComponent";
 import { TidalLyrics } from "./tidal/lyrics/components/lyrics";
-import { stopTidalLrcStore } from "./tidal/lyrics/providers/store";
+import { startTidalLrcStore, stopTidalLrcStore } from "./tidal/lyrics/providers/store";
 import { TidalPlayer } from "./tidal/TidalPlayer";
-import { stopTidalStore } from "./tidal/TidalStore";
+import { startTidalStore, stopTidalStore } from "./tidal/TidalStore";
 
 export default definePlugin({
     name: "MusicControls",
@@ -116,6 +116,8 @@ export default definePlugin({
     async start() {
         await migrateOldLyrics();
         toggleHoverControls(settings.store.hoverControls);
+        startTidalStore();
+        startTidalLrcStore();
     },
 
     stop() {

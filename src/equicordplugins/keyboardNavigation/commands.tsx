@@ -163,5 +163,7 @@ function togglePlugin(plugin: ButtonAction, enabled: boolean) {
 }
 
 export function registerAction(action: ButtonAction) {
-    actions.push(action);
+    if (!actions.some(a => a.id === action.id)) {
+        actions.push(action);
+    }
 }

@@ -20,6 +20,7 @@ import { findByCodeLazy, findComponentByCodeLazy, findCssClassesLazy } from "@we
 import {
     ChannelStore,
     FluxDispatcher,
+    MessageStore,
     ScrollerThin,
     TabBar,
     Tooltip,
@@ -124,14 +125,17 @@ export enum ListType {
 }
 
 function highlightKeywords(str: string, entries: Array<KeywordEntry>) {
-    let regexes: Array<RegExp>;
-    try {
-        regexes = entries.map(e => new RegExp(e.regex, "g" + (e.ignoreCase ? "i" : "")));
-    } catch (err) {
-        return [str];
+    if (!str) return [str ?? ""];
+
+    const regexes: Array<RegExp> = [];
+    for (const e of entries) {
+        if (!e.regex) continue;
+        try {
+            regexes.push(new RegExp(e.regex, "g" + (e.ignoreCase ? "i" : "")));
+        } catch { }
     }
 
-    const matches = regexes.map(r => str.match(r)).flat().filter(e => e != null) as Array<string>;
+    const matches = regexes.map(r => str.match(r)).flat().filter((e): e is string => !!e);
     if (matches.length === 0) {
         return [str];
     }
@@ -252,7 +256,12 @@ export default definePlugin({
     },
 
     applyKeywordEntries(m: Message) {
-        if (!m?.author) return;
+        if (!m) return;
+        const cached = m.author ? null : MessageStore.getMessage(m.channel_id, m.id);
+        const author = m.author ?? cached?.author;
+        if (!author) return;
+
+        const content = m.content ?? cached?.content;
         let matches = false;
 
         for (const entry of keywordEntries) {
@@ -262,7 +271,7 @@ export default definePlugin({
 
             let isInWhitelist = entry.whitelist.some(id => {
                 const trimmed = id.trim();
-                return trimmed === m.channel_id || trimmed === m.author.id;
+                return trimmed === m.channel_id || trimmed === author.id;
             });
             if (!isInWhitelist) {
                 const channel = ChannelStore.getChannel(m.channel_id);
@@ -273,7 +282,7 @@ export default definePlugin({
 
             let isInBlacklist = entry.blacklist.some(id => {
                 const trimmed = id.trim();
-                return trimmed === m.channel_id || trimmed === m.author.id;
+                return trimmed === m.channel_id || trimmed === author.id;
             });
             if (!isInBlacklist) {
                 const channel = ChannelStore.getChannel(m.channel_id);
@@ -298,12 +307,12 @@ export default definePlugin({
                 }
             }
 
-            if (m.author.bot && entry.ignoreBots && (!entry.whitelist.length || !entry.whitelist.includes(m.author.id))) {
+            if (author.bot && entry.ignoreBots && (!entry.whitelist.length || !entry.whitelist.includes(author.id))) {
                 continue;
             }
 
             const flags = entry.ignoreCase ? "i" : "";
-            if (safeMatchesRegex(m.content, entry.regex, flags)) {
+            if (safeMatchesRegex(content, entry.regex, flags)) {
                 matches = true;
             } else if (Array.isArray(m.embeds)) {
                 for (const embed of m.embeds as any) {
@@ -324,14 +333,28 @@ export default definePlugin({
 
         if (matches) {
             const id = UserStore.getCurrentUser()?.id;
-            if (id != null && Array.isArray(m.mentions)) {
-                // @ts-ignore
-                m.mentions.push({ id: id });
+            if (id != null) {
+                if (Array.isArray(m.mentions)) {
+                    // @ts-ignore
+                    m.mentions.push({ id: id });
+                } else {
+                    // @ts-ignore
+                    m.mentions = [{ id: id }];
+                }
             }
 
-            if (m.author.id !== id) {
-                this.storeMessage(m);
-                this.addToLog(m);
+            if (author.id !== id) {
+                const logMsg = (m.author && m.content != null && m.timestamp != null)
+                    ? m
+                    : {
+                        ...cached,
+                        ...m,
+                        author,
+                        content: content ?? "",
+                        timestamp: m.timestamp ?? cached?.timestamp ?? new Date().toISOString()
+                    } as Message;
+                this.storeMessage(logMsg);
+                this.addToLog(logMsg);
             }
         }
     },

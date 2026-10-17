@@ -112,10 +112,6 @@ export default definePlugin({
         channel: Channel,
         closePopout: () => void;
     }) {
-        if (FFmpegStateContext === undefined) {
-            return <div>FFmpegStateContext is undefined</div>;
-        }
-
         const [query, setQuery] = React.useState<string | undefined>();
         const [stickerPackMetas, setStickerPackMetas] = React.useState<StickerPackMeta[]>([]);
         const [stickerPacks, setStickerPacks] = React.useState<StickerPack[]>([]);
@@ -123,7 +119,7 @@ export default definePlugin({
         const [selectedStickerPackId, setSelectedStickerPackId] = React.useState<string | null>(null);
 
         const ffmpegLoaded = React.useState(false);
-        const ffmpeg = React.useState<FFmpeg>(new FFmpeg());
+        const ffmpeg = React.useState<FFmpeg>(() => new FFmpeg());
 
         const getMetasSignature = (m: StickerPackMeta[]) => m.map(x => x.id).sort().join(",");
 
@@ -156,6 +152,10 @@ export default definePlugin({
                 ffmpegLoaded[1](true);
             });
         }, []);
+
+        if (FFmpegStateContext === undefined) {
+            return <div>FFmpegStateContext is undefined</div>;
+        }
 
         return (
             <Wrapper>

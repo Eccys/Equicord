@@ -92,7 +92,10 @@ function isRoleAllBlockedMembers(roleId, guildId) {
     if (!membersWithRole.length) return false;
     if (isChannelInGuildBlocked(guildId, true)) return true;
 
-    return membersWithRole.every(member => shouldHideUser(member.userId) && !(UserStore.getUser(member.userId).desktop || UserStore.getUser(member.userId).mobile));
+    return membersWithRole.every(member => {
+        const user = UserStore.getUser(member.userId);
+        return shouldHideUser(member.userId) && !(user?.desktop || user?.mobile);
+    });
 }
 
 function hiddenReplyComponent() {

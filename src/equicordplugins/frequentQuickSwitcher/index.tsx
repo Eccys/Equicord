@@ -9,14 +9,16 @@ import definePlugin from "@utils/types";
 import { ChannelStore, UserSettingsActionCreators } from "@webpack/common";
 
 function generateSearchResults(query) {
-    const frequentChannelsWithQuery = Object.entries(UserSettingsActionCreators.FrecencyUserSettingsActionCreators.getCurrentValue().guildAndChannelFrecency.guildAndChannels)
-        .map(([key, value]) => key)
-        .filter(id => ChannelStore.getChannel(id) != null)
-        .filter(id => ChannelStore.getChannel(id).name.includes(query))
+    const guildAndChannels = UserSettingsActionCreators.FrecencyUserSettingsActionCreators.getCurrentValue()?.guildAndChannelFrecency?.guildAndChannels;
+    if (!guildAndChannels) return [];
+
+    const frequentChannelsWithQuery = Object.entries(guildAndChannels)
+        .map(([key]) => key)
+        .filter(id => ChannelStore.getChannel(id)?.name?.includes(query))
         .sort((id1, id2) => {
-            const channel1 = UserSettingsActionCreators.FrecencyUserSettingsActionCreators.getCurrentValue().guildAndChannelFrecency.guildAndChannels[id1];
-            const channel2 = UserSettingsActionCreators.FrecencyUserSettingsActionCreators.getCurrentValue().guildAndChannelFrecency.guildAndChannels[id2];
-            return channel2.totalUses - channel1.totalUses;
+            const channel1 = guildAndChannels[id1];
+            const channel2 = guildAndChannels[id2];
+            return (channel2?.totalUses ?? 0) - (channel1?.totalUses ?? 0);
         })
         .slice(0, 20);
 

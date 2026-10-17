@@ -42,9 +42,9 @@ const settings = definePluginSettings({
 });
 
 const UserContextMenuPatch: NavContextMenuPatchCallback = (children, { channel, user }: UserContextProps) => {
-    if (UserStore.getCurrentUser().id === user.id || !RelationshipStore.getFriendIDs().includes(user.id)) return;
+    const [checked, setChecked] = React.useState(Boolean(user?.id && followedUserInfo?.userId === user.id));
 
-    const [checked, setChecked] = React.useState(followedUserInfo?.userId === user.id);
+    if (!user || UserStore.getCurrentUser()?.id === user.id || !RelationshipStore.getFriendIDs().includes(user.id)) return;
 
     children.push(
         <Menu.MenuSeparator />,
@@ -60,7 +60,7 @@ const UserContextMenuPatch: NavContextMenuPatchCallback = (children, { channel, 
                 }
 
                 followedUserInfo = {
-                    lastChannelId: UserStore.getCurrentUser().id,
+                    lastChannelId: UserStore.getCurrentUser()?.id ?? "",
                     userId: user.id
                 };
                 setChecked(true);
@@ -85,9 +85,10 @@ export default definePlugin({
             if (!followedUserInfo) return;
             if (!RelationshipStore.getFriendIDs().includes(followedUserInfo.userId)) return;
 
+            const currentUserId = UserStore.getCurrentUser()?.id;
             if (
                 settings.store.onlyWhenInVoice
-                && !VoiceStateStore.getVoiceStateForUser(UserStore.getCurrentUser().id)
+                && (!currentUserId || !VoiceStateStore.getVoiceStateForUser(currentUserId))
             ) return;
 
             voiceStates.forEach(voiceState => {

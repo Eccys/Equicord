@@ -40,14 +40,14 @@ export class Data {
     onMessagePreSend(channelId, message, extra) {
         const target: Set<{ user: User; source?: Guild, extra: IUserExtra; }> = new Set();
         const now = Date.now();
-        const { replyOptions } = extra;
+        const replyOptions = extra?.replyOptions;
 
         const guild = (() => {
             const channel = ChannelStore.getChannel(channelId);
-            return GuildStore.getGuild(channel.guild_id) || undefined;
+            return (channel?.guild_id && GuildStore.getGuild(channel.guild_id)) || undefined;
         })();
 
-        if (replyOptions.messageReference) {
+        if (replyOptions?.messageReference) {
             const { channel_id, message_id } = replyOptions.messageReference;
             const message = MessageStore.getMessage(channel_id, message_id);
             if (!message) {
@@ -55,7 +55,9 @@ export class Data {
             }
             const { author } = message;
 
-            target.add({ user: author, source: guild, extra: { updatedAt: now } });
+            if (author) {
+                target.add({ user: author, source: guild, extra: { updatedAt: now } });
+            }
         }
 
         if (message.content) {
@@ -82,7 +84,7 @@ export class Data {
         const processedGuilds = new Set<string>();
 
         for (const { user, source, extra } of array) {
-            if (user.bot) {
+            if (!user || user.bot) {
                 continue;
             }
 
@@ -126,7 +128,7 @@ export class Data {
         const now = Date.now();
         const LIMIT = 1_000;
 
-        const clientId = UserStore.getCurrentUser().id;
+        const clientId = UserStore.getCurrentUser()?.id;
         if (!clientId) {
             return;
         }
@@ -136,12 +138,10 @@ export class Data {
                 continue;
             }
 
-            const members = GuildMemberStore.getMembers(guild.id);
-            if (members.length > LIMIT) {
-                members.length = LIMIT;
-            }
+            const members = GuildMemberStore.getMembers(guild.id).slice(0, LIMIT);
             for (const member of members) {
                 const user = UserStore.getUser(member.userId);
+                if (!user) continue;
                 target.add({ user, source: guild, extra: { updatedAt: now } });
             }
 

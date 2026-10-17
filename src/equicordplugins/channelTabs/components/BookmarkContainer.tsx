@@ -104,7 +104,7 @@ function BookmarkIcon({ bookmark }: { bookmark: Bookmark | BookmarkFolder; }) {
         if (channel.recipients.length === 1) return (
             <Avatar
                 size="SIZE_16"
-                src={UserStore.getUser(channel.recipients[0]).getAvatarURL(undefined, 128)}
+                src={UserStore.getUser(channel.recipients[0])?.getAvatarURL(undefined, 128)}
             />
         );
         else return (
