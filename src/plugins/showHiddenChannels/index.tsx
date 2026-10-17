@@ -407,8 +407,8 @@ export default definePlugin({
                 },
                 {
                     // Disable useless components for the HiddenChannelLockScreen of stage channels
-                    match: /render(?:BottomLeft|BottomCenter|BottomRight|ChatToasts):\(\)=>(?<=let \i,{channel:(\i).+?)/g,
-                    replace: (m, channel) => `${m}$self.isHiddenChannel(${channel})?null:`
+                    match: /render(?:BottomLeft|BottomCenter|BottomRight|ChatToasts):(?:\(\)=>|function\(\)\{return)(?<=let \i,{channel:(\i).+?)/g,
+                    replace: (m, channel) => `${m} $self.isHiddenChannel(${channel})?null:`
                 },
                 {
                     // Disable gradients for the HiddenChannelLockScreen of stage channels
