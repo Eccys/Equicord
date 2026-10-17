@@ -23,7 +23,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs, EquicordDevs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { classes } from "@utils/misc";
-import definePlugin, { OptionType } from "@utils/types";
+import definePlugin, { OptionType, StartAt } from "@utils/types";
 import type { Channel, Role } from "@vencord/discord-types";
 import { ChannelStore, PermissionsBits, PermissionStore, Tooltip } from "@webpack/common";
 
@@ -504,12 +504,25 @@ export default definePlugin({
         },
         {
             find: "2026-02-private-channel-hiding",
-            replacement: {
-                match: /(?<=enableObfuscation|enableIntegrityCheck):!0/g,
-                replace: ":false"
-            }
+            replacement: [
+                {
+                    match: /(?<=enableObfuscation|enableIntegrityCheck):!0/g,
+                    replace: ":false"
+                },
+                {
+                    match: /\.(?:enableObfuscation|enableIntegrityCheck)\b/g,
+                    replace: "&&false"
+                }
+            ]
         }
     ],
+
+    startAt: StartAt.Init,
+    start() {
+        try {
+            window.localStorage.removeItem("private_channel_obfuscation");
+        } catch { }
+    },
 
     set ChannelBeginHeader(value: any) {
         setChannelBeginHeader(value);
