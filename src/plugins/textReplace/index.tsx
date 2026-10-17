@@ -18,18 +18,21 @@
 
 import "./styles.css";
 
+import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
+import { plugins } from "@api/PluginManager";
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
 import { ExpandableSection } from "@components/ExpandableCard";
 import { Flex } from "@components/Flex";
 import { HeadingSecondary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
+import { openPluginModal } from "@components/settings";
 import { Span } from "@components/Span";
 import { TooltipContainer } from "@components/TooltipContainer";
 import { Devs, EquicordDevs, SUPPORT_CHANNEL_IDS } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { Logger } from "@utils/Logger";
-import definePlugin, { OptionType } from "@utils/types";
+import definePlugin, { IconComponent, OptionType } from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { React, Select, TextInput, UserStore, useState } from "@webpack/common";
 
@@ -68,6 +71,16 @@ const makeEmptyRule: () => Rule = () => ({
 const makeEmptyRuleArray = () => [makeEmptyRule()];
 
 const settings = definePluginSettings({
+    active: {
+        type: OptionType.BOOLEAN,
+        description: "Whether text replacement rules are currently active.",
+        default: true
+    },
+    chatBarButton: {
+        type: OptionType.BOOLEAN,
+        description: "Show a button in the chat bar to toggle TextReplace on or off (right-click to open settings).",
+        default: true
+    },
     replace: {
         type: OptionType.COMPONENT,
         component: () => {
@@ -404,6 +417,8 @@ function applyRules(content: string, scope: "myMessages" | "othersMessages" | "a
 }
 
 function modifyIncomingMessage(message: Message) {
+    if (!settings.store.active) return message.content;
+
     const currentUser = UserStore.getCurrentUser();
     const messageAuthor = message.author;
 
@@ -414,6 +429,55 @@ function modifyIncomingMessage(message: Message) {
     return applyRules(message.content, "othersMessages");
 }
 
+const TextReplaceIcon: IconComponent = ({ height = 20, width = 20, className, children }) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        className={className}
+    >
+        <path
+            fill="currentColor"
+            mask="url(#vc-text-replace-mask)"
+            d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04ZM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12Zm-2.62 7 1.62-4.33L19.12 17h-3.24Z"
+        />
+        {children}
+    </svg>
+);
+
+function TextReplaceDisabledIcon() {
+    return (
+        <TextReplaceIcon>
+            <mask id="vc-text-replace-mask">
+                <path fill="#fff" d="M0 0h24v24H0Z" />
+                <path stroke="#000" strokeWidth="5.99068" d="M0 24 24 0" />
+            </mask>
+            <path fill="var(--status-danger)" d="m21.178 1.70703 1.414 1.414L4.12103 21.593l-1.414-1.415L21.178 1.70703Z" />
+        </TextReplaceIcon>
+    );
+}
+
+const TextReplaceChatBarButton: ChatBarButtonFactory = ({ isMainChat }) => {
+    const { active, chatBarButton } = settings.use(["active", "chatBarButton"]);
+
+    if (!isMainChat || !chatBarButton) return null;
+
+    return (
+        <ChatBarButton
+            tooltip={active ? "Disable TextReplace (Right-click for settings)" : "Enable TextReplace (Right-click for settings)"}
+            onClick={() => {
+                settings.store.active = !active;
+            }}
+            onContextMenu={e => {
+                e.preventDefault();
+                openPluginModal(plugins.TextReplace);
+            }}
+        >
+            {active ? <TextReplaceIcon /> : <TextReplaceDisabledIcon />}
+        </ChatBarButton>
+    );
+};
+
 const TEXT_REPLACE_RULES_EXEMPT_CHANNEL_IDS = [
     "1102784112584040479", // Vencord's Text Replace Rules Channel
     "1419347113745059961", // Equicord's Requests Channel
@@ -423,12 +487,17 @@ const TEXT_REPLACE_RULES_EXEMPT_CHANNEL_IDS = [
 export default definePlugin({
     name: "TextReplace",
     description: "Replace text in your messages. You can find pre-made rules in the #textreplace-rules channel in Vencord's Server",
-    dependencies: ["MessagePopoverAPI"],
+    dependencies: ["MessagePopoverAPI", "ChatInputButtonAPI"],
     tags: ["Chat", "Customisation", "Utility"],
     authors: [Devs.AutumnVN, Devs.TheKodeToad, EquicordDevs.Etorix, EquicordDevs.Ape],
     isModified: true,
     settings,
     modifyIncomingMessage,
+
+    chatBarButton: {
+        icon: TextReplaceIcon,
+        render: TextReplaceChatBarButton
+    },
 
     patches: [
         {
@@ -448,6 +517,7 @@ export default definePlugin({
     },
 
     onBeforeMessageSend(channelId, msg) {
+        if (!settings.store.active) return;
         // Replacing text in channels used for sharing/requesting rules may be messy.
         if (TEXT_REPLACE_RULES_EXEMPT_CHANNEL_IDS.includes(channelId)) return;
         msg.content = applyRules(msg.content, "myMessages");
