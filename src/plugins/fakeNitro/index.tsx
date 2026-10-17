@@ -430,10 +430,21 @@ export default definePlugin({
         return (OverridePremiumTypeStore.getState().premiumTypeActual ?? 0) > 1;
     },
 
-    handleProtoChange(proto: any, user: any) {
+    lastUserId: undefined as string | undefined,
+
+    handleProtoChange(proto: any, user?: any) {
         try {
             if (proto == null || typeof proto === "string") return;
-            const premiumType = OverridePremiumTypeStore.getState().premiumTypeActual ?? 0;
+
+            if (user?.id != null) {
+                const isDifferentUserWithoutLogout = UserSettingsProtoStore.hasLoaded(1) && this.lastUserId != null && this.lastUserId !== user.id;
+                this.lastUserId = user.id;
+                if (isDifferentUserWithoutLogout) return;
+            }
+
+            const premiumType: number = user != null
+                ? (user.premium_type ?? user.premiumType ?? 0)
+                : (OverridePremiumTypeStore.getState().premiumTypeActual ?? 0);
 
             if (premiumType !== 2) {
                 const protoStoreAppearenceSettings = UserSettingsProtoStore.settings.appearance;
