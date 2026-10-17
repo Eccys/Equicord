@@ -77,6 +77,24 @@ export default definePlugin({
                 match: /(?=let \i=window;)/,
                 replace: "return false;"
             }
+        },
+        {
+            find: '"installation_id_v3"',
+            predicate: () => settings.store.disableAnalytics,
+            replacement: [
+                {
+                    match: /(?<=let \i=function\(\)\{return)!0(?=\};)/,
+                    replace: "!1"
+                },
+                {
+                    match: /(?=let \i=\i\.\i\.get\(\i\);if\(null!=\i&&\i\.length>0\)return \i;let \i=\i\.\i\.get\("analytics_installation"\))/,
+                    replace: "return null;"
+                },
+                {
+                    match: /(?=let\{installation:\i\}=\i;if\(null!=\i&&\i\.length>0\)return!1;)/,
+                    replace: "return false;"
+                }
+            ]
         }
     ],
 
@@ -91,6 +109,13 @@ export default definePlugin({
 
     startAt: StartAt.Init,
     start() {
+        if (settings.store.disableAnalytics) {
+            try {
+                window.localStorage.removeItem("installation_id_v3");
+                window.localStorage.removeItem("analytics_installation");
+            } catch { }
+        }
+
         // Sentry is initialized in its own WebpackInstance.
         // It has everything it needs preloaded, so, it doesn't include any chunk loading functionality.
         // Because of that, its WebpackInstance doesnt export wreq.m or wreq.c
